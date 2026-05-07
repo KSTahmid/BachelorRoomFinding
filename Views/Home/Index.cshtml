@@ -1,0 +1,63 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <h4><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-10 rounded p-3">
+                    <i class="bi bi-building fs-2 text-primary"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Manage</div>
+                    <h5 class="mb-1">Rooms</h5>
+                    <a asp-controller="Room" asp-action="Index" class="btn btn-primary btn-sm">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-success bg-opacity-10 rounded p-3">
+                    <i class="bi bi-people fs-2 text-success"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Manage</div>
+                    <h5 class="mb-1">Users</h5>
+                    <a asp-controller="User" asp-action="Index" class="btn btn-success btn-sm">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-info bg-opacity-10 rounded p-3">
+                    <i class="bi bi-shield-check fs-2 text-info"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Manage</div>
+                    <h5 class="mb-1">Roles</h5>
+                    <a asp-controller="Role" asp-action="Index" class="btn btn-info btn-sm text-white">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4 shadow-sm border-0">
+    <div class="card-body">
+        <h6 class="text-muted mb-2">Architecture</h6>
+        <p class="mb-0 small text-muted">
+            <i class="bi bi-layers me-2 text-primary"></i>
+            This project uses the <strong>Repository Pattern</strong> with <code>IRepository&lt;T&gt;</code> for clean data access and
+            <strong>Server-Side Pagination</strong> via <code>PagedResult&lt;T&gt;</code> across all entities.
+        </p>
+    </div>
+</div>

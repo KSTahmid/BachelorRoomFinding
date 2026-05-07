@@ -1,0 +1,95 @@
+@model PagedResult<Role>
+@{
+    ViewData["Title"] = "Roles";
+    int page = Model.PageNumber;
+    int pageSize = ViewBag.PageSize ?? 5;
+    string search = ViewBag.Search ?? "";
+}
+
+<div class="d-flex justify-content-between align-items-center page-header">
+    <h4 class="mb-0"><i class="bi bi-shield-check me-2 text-primary"></i>Role Management</h4>
+    <a asp-action="Create" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Add Role
+    </a>
+</div>
+
+<!-- Search -->
+<form asp-action="Index" method="get" class="mb-3 d-flex gap-2">
+    <input type="hidden" name="pageSize" value="@pageSize" />
+    <input type="text" name="search" value="@search" class="form-control form-control-sm w-auto" placeholder="Search roles..." />
+    <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search"></i></button>
+    @if (!string.IsNullOrEmpty(search))
+    {
+        <a asp-action="Index" class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i> Clear</a>
+    }
+</form>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Role Name</th>
+                    <th>Description</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Items.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-4">No roles found.</td></tr>
+                }
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td><span class="fw-semibold">@item.RoleName</span></td>
+                        <td class="text-muted">@(item.RoleDescription ?? "-")</td>
+                        <td class="text-center">
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning btn-action me-1">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-action">
+                                <i class="bi bi-trash"></i> Delete
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <small class="text-muted">
+        Showing @((page - 1) * pageSize + 1)–@(Math.Min(page * pageSize, Model.TotalCount)) of @Model.TotalCount records
+    </small>
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item @(!Model.HasPrevious ? "disabled" : "")">
+                <a class="page-link" href="?page=@(page - 1)&pageSize=@pageSize&search=@search">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            @for (int i = Math.Max(1, page - 2); i <= Math.Min(Model.TotalPages, page + 2); i++)
+            {
+                <li class="page-item @(i == page ? "active" : "")">
+                    <a class="page-link" href="?page=@i&pageSize=@pageSize&search=@search">@i</a>
+                </li>
+            }
+            <li class="page-item @(!Model.HasNext ? "disabled" : "")">
+                <a class="page-link" href="?page=@(page + 1)&pageSize=@pageSize&search=@search">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <select class="form-select form-select-sm w-auto" onchange="location='?page=1&pageSize='+this.value+'&search=@search'">
+        @foreach (var ps in new[] { 5, 10, 25 })
+        {
+            <option value="@ps" selected="@(pageSize == ps)">@ps per page</option>
+        }
+    </select>
+</div>

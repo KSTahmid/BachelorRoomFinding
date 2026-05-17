@@ -1,0 +1,43 @@
+@model ReviewViewModel
+@{ViewData["Title"] = "Write a Review"; var room = ViewBag.Room as Room;}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-star me-2 text-warning"></i>Write a Review</h1>
+    @if (room != null)
+    { <a asp-action="RoomDetail" asp-route-id="@room.Id" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a> }
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="form-card">
+            @if (room != null)
+            {
+                <div class="mb-3 p-3 bg-light rounded"><h6 class="fw-700 mb-1">@room.Title</h6><div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>@room.Thana, @room.District</div></div>
+            }
+            <form asp-action="Review" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="RoomId" type="hidden"/>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+                <div class="mb-3">
+                    <label class="form-label">Rating *</label>
+                    <div class="d-flex gap-3">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <div>
+                                <input type="radio" class="btn-check" name="Rating" id="r@i" value="@i" @(i==3?"checked":"")/>
+                                <label class="btn btn-outline-warning" for="r@i">@i ⭐</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Comment</label>
+                    <textarea asp-for="Comment" class="form-control" rows="4" placeholder="Share your experience with this room..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-warning w-100 py-2 fw-600">
+                    <i class="bi bi-star-fill me-2"></i>Submit Review
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

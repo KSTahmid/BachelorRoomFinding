@@ -3,102 +3,230 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Bachelor Room Finder</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
-    <style>
-        body { background-color: #f8f9fa; }
-        .navbar-brand { font-weight: 700; font-size: 1.3rem; }
-        .sidebar { min-height: calc(100vh - 56px); background: #fff; border-right: 1px solid #dee2e6; }
-        .sidebar .nav-link { color: #495057; border-radius: 6px; margin-bottom: 2px; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #e9ecef; color: #0d6efd; }
-        .sidebar .nav-link i { width: 20px; }
-        .page-header { border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        .table th { background: #f1f3f5; font-weight: 600; }
-        .btn-action { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
-    </style>
+    <title>@ViewData["Title"] - BRF | Bachelor Room Finder BD</title>
+    <meta name="description" content="Find bachelor rooms for rent in Bangladesh. Browse verified listings in Dhaka, Chattogram, Sylhet and more." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/"><i class="bi bi-house-door-fill me-2"></i>Bachelor Room Finder</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    @if (Context.Session.GetInt32("UserId") != null)
+@{
+    var userId   = Context.Session.GetInt32("UserId");
+    var userName = Context.Session.GetString("UserName") ?? "";
+    var userRole = Context.Session.GetString("Role") ?? "";
+    var ctrl     = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    bool isLoggedIn = userId != null;
+}
+
+<!-- ═══ TOP NAVBAR ═══════════════════════════════════════════════ -->
+<nav class="brf-topbar">
+    <div class="d-flex align-items-center gap-3">
+        <button class="sidebar-toggle btn btn-icon d-md-none" id="sidebarToggle">
+            <i class="bi bi-list fs-5"></i>
+        </button>
+        <a class="brf-brand" href="/">
+            <i class="bi bi-house-door-fill"></i> BRF
+        </a>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        @if (isLoggedIn)
+        {
+            <!-- Notification Bell -->
+            <div class="dropdown">
+                <button class="btn btn-icon position-relative" id="notifBtn" data-bs-toggle="dropdown">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span class="notif-badge" id="notifCount" style="display:none">0</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 notif-dropdown">
+                    <li><h6 class="dropdown-header"><i class="bi bi-bell me-2"></i>Notifications</h6></li>
+                    <li><hr class="dropdown-divider m-0"></li>
+                    <li><a class="dropdown-item text-muted small py-2" asp-controller="Notification" asp-action="Index">View all notifications</a></li>
+                    <li><a class="dropdown-item text-primary small py-2" asp-controller="Notification" asp-action="MarkAllRead">Mark all as read</a></li>
+                </ul>
+            </div>
+            <!-- User Menu -->
+            <div class="dropdown">
+                <button class="btn btn-user dropdown-toggle" data-bs-toggle="dropdown">
+                    <span class="avatar-sm">@(userName.Length > 0 ? userName[0].ToString().ToUpper() : "U")</span>
+                    <span class="d-none d-md-inline ms-2">@userName</span>
+                    @if (userRole == "Admin") { <span class="badge bg-danger ms-1">Admin</span> }
+                    else if (userRole == "Owner") { <span class="badge bg-warning text-dark ms-1">Owner</span> }
+                    else { <span class="badge bg-primary ms-1">User</span> }
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    @if (userRole == "Admin")
                     {
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> @Context.Session.GetString("UserName")
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">Logout</a></li>
-                            </ul>
-                        </li>
+                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard"><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</a></li>
+                    }
+                    else if (userRole == "Owner")
+                    {
+                        <li><a class="dropdown-item" asp-controller="Owner" asp-action="Dashboard"><i class="bi bi-speedometer2 me-2"></i>Owner Dashboard</a></li>
                     }
                     else
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Account" asp-action="Login">
-                                <i class="bi bi-box-arrow-in-right me-1"></i>Login
-                            </a>
-                        </li>
+                        <li><a class="dropdown-item" asp-controller="UserDashboard" asp-action="Dashboard"><i class="bi bi-speedometer2 me-2"></i>My Dashboard</a></li>
                     }
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                 </ul>
             </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-2 d-md-block sidebar py-3 ps-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")" 
-                           asp-controller="Home" asp-action="Index">
-                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Room" ? "active" : "")" 
-                           asp-controller="Room" asp-action="Index">
-                            <i class="bi bi-building me-2"></i>Rooms
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "User" ? "active" : "")" 
-                           asp-controller="User" asp-action="Index">
-                            <i class="bi bi-people me-2"></i>Users
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Role" ? "active" : "")" 
-                           asp-controller="Role" asp-action="Index">
-                            <i class="bi bi-shield-check me-2"></i>Roles
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-
-            <!-- Main Content -->
-            <main class="col-md-10 py-4 px-4">
-                @if (TempData["Success"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-
-                @RenderBody()
-            </main>
-        </div>
+        }
+        else
+        {
+            <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Login">Login</a>
+            <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register">Register</a>
+        }
     </div>
+</nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+<!-- ═══ LAYOUT BODY ══════════════════════════════════════════════ -->
+<div class="brf-body">
+    <!-- ── SIDEBAR ──────────────────────────────────────────────── -->
+    @if (isLoggedIn)
+    {
+        <aside class="brf-sidebar" id="brf-sidebar">
+            <nav class="sidebar-nav">
+                @if (userRole == "Admin")
+                {
+                    <p class="sidebar-section-label">ADMIN</p>
+                    <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="Dashboard"?"active":"")" asp-controller="Admin" asp-action="Dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="Users"?"active":"")" asp-controller="Admin" asp-action="Users">
+                        <i class="bi bi-people"></i> Users
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="Rooms"?"active":"")" asp-controller="Admin" asp-action="Rooms">
+                        <i class="bi bi-building"></i> Rooms
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="Kyc"?"active":"")" asp-controller="Admin" asp-action="Kyc">
+                        <i class="bi bi-shield-check"></i> KYC Review
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="LoginHistory"?"active":"")" asp-controller="Admin" asp-action="LoginHistory">
+                        <i class="bi bi-clock-history"></i> Login History
+                    </a>
+                    <hr class="sidebar-divider">
+                    <p class="sidebar-section-label">MANAGE</p>
+                    <a class="sidebar-link @(ctrl=="User"?"active":"")" asp-controller="User" asp-action="Index">
+                        <i class="bi bi-person-lines-fill"></i> Manage Users
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Room"?"active":"")" asp-controller="Room" asp-action="Index">
+                        <i class="bi bi-door-open"></i> Manage Rooms
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Role"?"active":"")" asp-controller="Role" asp-action="Index">
+                        <i class="bi bi-key"></i> Roles
+                    </a>
+                }
+                else if (userRole == "Owner")
+                {
+                    <p class="sidebar-section-label">OWNER</p>
+                    <a class="sidebar-link @(ctrl=="Owner"&&ViewContext.RouteData.Values["action"]?.ToString()=="Dashboard"?"active":"")" asp-controller="Owner" asp-action="Dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Owner"&&ViewContext.RouteData.Values["action"]?.ToString()=="MyRooms"?"active":"")" asp-controller="Owner" asp-action="MyRooms">
+                        <i class="bi bi-building"></i> My Rooms
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Owner"&&ViewContext.RouteData.Values["action"]?.ToString()=="PostRoom"?"active":"")" asp-controller="Owner" asp-action="PostRoom">
+                        <i class="bi bi-plus-circle"></i> Post Room
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Owner"&&ViewContext.RouteData.Values["action"]?.ToString()=="Applications"?"active":"")" asp-controller="Owner" asp-action="Applications">
+                        <i class="bi bi-file-earmark-person"></i> Applications
+                    </a>
+                    <hr class="sidebar-divider">
+                    <a class="sidebar-link @(ctrl=="Message"?"active":"")" asp-controller="Message" asp-action="Inbox">
+                        <i class="bi bi-chat-dots"></i> Messages
+                    </a>
+                    <a class="sidebar-link @(ctrl=="Owner"&&ViewContext.RouteData.Values["action"]?.ToString()=="Kyc"?"active":"")" asp-controller="Owner" asp-action="Kyc">
+                        <i class="bi bi-patch-check"></i> My KYC
+                    </a>
+                }
+                else
+                {
+                    <p class="sidebar-section-label">TENANT</p>
+                    <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="Dashboard"?"active":"")" asp-controller="UserDashboard" asp-action="Dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="Browse"?"active":"")" asp-controller="UserDashboard" asp-action="Browse">
+                        <i class="bi bi-search"></i> Browse Rooms
+                    </a>
+                    <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="SavedRooms"?"active":"")" asp-controller="UserDashboard" asp-action="SavedRooms">
+                        <i class="bi bi-bookmark-heart"></i> Saved Rooms
+                    </a>
+                    <hr class="sidebar-divider">
+                    <a class="sidebar-link @(ctrl=="Message"?"active":"")" asp-controller="Message" asp-action="Inbox">
+                        <i class="bi bi-chat-dots"></i> Messages
+                    </a>
+                    <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="Kyc"?"active":"")" asp-controller="UserDashboard" asp-action="Kyc">
+                        <i class="bi bi-patch-check"></i> My KYC
+                    </a>
+                }
+                <hr class="sidebar-divider">
+                <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="Browse"?"active":"")" asp-controller="UserDashboard" asp-action="Browse">
+                    <i class="bi bi-house-door"></i> Browse Listings
+                </a>
+                <a class="sidebar-link @(ctrl=="Roommate"?"active":"")" asp-controller="Roommate" asp-action="Index">
+                    <i class="bi bi-people"></i> Find Roommate
+                </a>
+                <a class="sidebar-link text-danger-soft" asp-controller="Account" asp-action="Logout">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </nav>
+        </aside>
+    }
+
+    <!-- ── MAIN CONTENT ──────────────────────────────────────────── -->
+    <main class="brf-main @(isLoggedIn ? "with-sidebar" : "no-sidebar")">
+        <!-- Toast messages -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+                <div class="toast align-items-center text-bg-success border-0 show" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+                <div class="toast align-items-center text-bg-danger border-0 show" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body"><i class="bi bi-exclamation-circle-fill me-2"></i>@TempData["Error"]</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @RenderBody()
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Auto-dismiss toasts
+    document.querySelectorAll('.toast').forEach(t => {
+        setTimeout(() => { const b = bootstrap.Toast.getOrCreateInstance(t); b.hide(); }, 4000);
+    });
+    // Sidebar toggle (mobile)
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+        document.getElementById('brf-sidebar')?.classList.toggle('open');
+    });
+    // Notification badge
+    async function loadNotifCount() {
+        try {
+            const r = await fetch('/Notification/GetUnreadCount');
+            const d = await r.json();
+            const el = document.getElementById('notifCount');
+            if (el) { el.textContent = d.count; el.style.display = d.count > 0 ? 'flex' : 'none'; }
+        } catch {}
+    }
+    @if (isLoggedIn) { <text>loadNotifCount();</text> }
+</script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

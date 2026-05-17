@@ -1,0 +1,103 @@
+@model PaymentViewModel
+@{ViewData["Title"] = "Make Payment"; var app = ViewBag.Application as RentalApplication;}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-credit-card me-2 text-primary"></i>Make Payment</h1>
+</div>
+
+<div class="row g-4 justify-content-center">
+    <div class="col-lg-7">
+        <div class="form-card">
+            <form asp-action="Payment" method="post" id="payForm">
+                @Html.AntiForgeryToken()
+                <input asp-for="ApplicationId" type="hidden"/>
+
+                <p class="section-label">Payment Method</p>
+                <div class="d-flex gap-3 mb-4">
+                    <input type="radio" class="btn-check" name="Method" id="bkash" value="bKash" checked onchange="toggleMethod()"/>
+                    <label class="btn bkash-btn flex-fill py-2" for="bkash">
+                        <i class="bi bi-phone-fill me-1"></i> bKash
+                    </label>
+                    <input type="radio" class="btn-check" name="Method" id="nagad" value="Nagad" onchange="toggleMethod()"/>
+                    <label class="btn nagad-btn flex-fill py-2" for="nagad">
+                        <i class="bi bi-phone-fill me-1"></i> Nagad
+                    </label>
+                    <input type="radio" class="btn-check" name="Method" id="bank" value="BankTransfer" onchange="toggleMethod()"/>
+                    <label class="btn btn-outline-secondary flex-fill py-2" for="bank">
+                        <i class="bi bi-bank me-1"></i> Bank
+                    </label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Amount (৳) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text fw-700">৳</span>
+                        <input asp-for="Amount" type="number" class="form-control" step="0.01"/>
+                    </div>
+                    <span asp-validation-for="Amount" class="text-danger small"></span>
+                </div>
+
+                <!-- bKash/Nagad fields -->
+                <div id="mobileFields">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Send money to <strong>01XXXXXXXXXX</strong> and enter the transaction ID below.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transaction ID *</label>
+                        <input asp-for="TransactionId" class="form-control" placeholder="e.g. 8N6AB3TXYZ"/>
+                    </div>
+                </div>
+
+                <!-- Bank fields -->
+                <div id="bankFields" style="display:none">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Bank Name *</label>
+                            <input asp-for="BankName" class="form-control" placeholder="Dutch Bangla Bank"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Account / Ref No *</label>
+                            <input asp-for="BankAccount" class="form-control" placeholder="Account number"/>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 mt-3">
+                    <i class="bi bi-check-circle me-2"></i>Submit Payment
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        @if (app != null)
+        {
+            <div class="form-card">
+                <p class="section-label">Payment Summary</p>
+                <h6 class="fw-700">@app.Room?.Title</h6>
+                <div class="text-muted small mb-3">@app.Room?.District</div>
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span>Monthly Rent</span><span class="fw-600">৳@app.Room?.Rent.ToString("N0")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span>Duration</span><span class="fw-600">@app.DurationMonths month(s)</span>
+                </div>
+                <hr/>
+                <div class="d-flex justify-content-between fw-700">
+                    <span>Total Due</span>
+                    <span class="text-primary">৳@((app.Room?.Rent * app.DurationMonths)?.ToString("N0"))</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function toggleMethod() {
+    const v = document.querySelector('input[name="Method"]:checked')?.value;
+    document.getElementById('mobileFields').style.display = (v==='BankTransfer') ? 'none' : '';
+    document.getElementById('bankFields').style.display   = (v==='BankTransfer') ? '' : 'none';
+}
+</script>
+}

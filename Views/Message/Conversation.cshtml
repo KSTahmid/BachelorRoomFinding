@@ -1,0 +1,48 @@
+@model IEnumerable<Message>
+@{ViewData["Title"] = "Conversation"; var other = ViewBag.OtherUser as User; var meId = (int)ViewBag.CurrentUserId;}
+
+<div class="page-header">
+    <h1 class="page-title">
+        <a asp-action="Inbox" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>
+        <span class="avatar-sm me-2">@(other?.UserName?[0].ToString().ToUpper())</span>
+        @other?.UserName
+        @if (other?.IsVerified == true){ <i class="bi bi-patch-check-fill text-primary ms-1 small"></i> }
+    </h1>
+</div>
+
+<div class="brf-card mb-3" style="max-width:700px">
+    <div class="p-3" style="height:450px;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem" id="msgBox">
+        @if (!Model.Any())
+        {
+            <div class="empty-state"><i class="bi bi-chat"></i><h5>No messages yet</h5><p>Send the first message below</p></div>
+        }
+        @foreach (var m in Model)
+        {
+            bool isMe = m.SenderId == meId;
+            <div class="d-flex @(isMe?"justify-content-end":"justify-content-start")">
+                <div style="max-width:70%;background:@(isMe?"#2563EB":"#f1f5f9");color:@(isMe?"#fff":"#0f172a");
+                            padding:.6rem 1rem;border-radius:@(isMe?"16px 16px 4px 16px":"16px 16px 16px 4px");
+                            font-size:.88rem;">
+                    @m.Content
+                    <div style="font-size:.65rem;opacity:.7;margin-top:.25rem;text-align:right">@m.SentAt.ToString("HH:mm")</div>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="border-top p-3">
+        <form asp-action="Send" method="post" class="d-flex gap-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="receiverId" value="@other?.UserId"/>
+            <input name="content" class="form-control" placeholder="Type a message..." required autocomplete="off" id="msgInput"/>
+            <button type="submit" class="btn btn-primary px-3"><i class="bi bi-send-fill"></i></button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const box = document.getElementById('msgBox');
+    box.scrollTop = box.scrollHeight;
+    document.getElementById('msgInput')?.focus();
+</script>
+}

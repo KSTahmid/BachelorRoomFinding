@@ -1,0 +1,167 @@
+@model PagedResult<Room>
+@{
+    ViewData["Title"] = "Browse Rooms";
+    var f = ViewBag.Filter as RoomFilterViewModel ?? new RoomFilterViewModel();
+    var savedIds = ViewBag.SavedIds as List<int> ?? new List<int>();
+    var districts = new[]{"Dhaka","Chattogram","Sylhet","Rajshahi","Khulna","Barisal","Rangpur","Mymensingh"};
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-search me-2"></i>Browse Rooms</h1>
+    <span class="text-muted small">@Model.TotalCount rooms found</span>
+</div>
+
+<div class="row g-3">
+    <!-- Filters Sidebar -->
+    <div class="col-lg-3">
+        <div class="form-card">
+            <form method="get" id="filterForm">
+                <p class="section-label">Filters</p>
+                <div class="mb-3">
+                    <label class="form-label small">Search</label>
+                    <input name="Search" value="@f.Search" class="form-control form-control-sm" placeholder="Title, area..."/>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">District</label>
+                    <select name="District" class="form-select form-select-sm">
+                        <option value="">All Districts</option>
+                        @foreach (var d in districts)
+                        {
+                            if (f.District == d) { <option value="@d" selected>@d</option> }
+                            else                 { <option value="@d">@d</option> }
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Room Type</label>
+                    <select name="RoomType" class="form-select form-select-sm">
+                        <option value="">Any</option>
+                        @{ var rt = f.RoomType?.ToString(); }
+                        @if (rt == "Single")  { <option value="Single" selected>Single</option>  } else { <option value="Single">Single</option>  }
+                        @if (rt == "Double")  { <option value="Double" selected>Double</option>  } else { <option value="Double">Double</option>  }
+                        @if (rt == "Shared")  { <option value="Shared" selected>Shared</option>  } else { <option value="Shared">Shared</option>  }
+                        @if (rt == "Flat")    { <option value="Flat"   selected>Flat</option>    } else { <option value="Flat">Flat</option>      }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Min Rent (৳)</label>
+                    <input name="MinRent" type="number" value="@f.MinRent" class="form-control form-control-sm" placeholder="0"/>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Max Rent (৳)</label>
+                    <input name="MaxRent" type="number" value="@f.MaxRent" class="form-control form-control-sm" placeholder="50000"/>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        @if (f.AvailableNow == true) { <input class="form-check-input" type="checkbox" name="AvailableNow" value="true" checked/> }
+                        else                         { <input class="form-check-input" type="checkbox" name="AvailableNow" value="true"/> }
+                        <label class="form-check-label small">Available Now</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Sort By</label>
+                    <select name="SortBy" class="form-select form-select-sm">
+                        @if (f.SortBy == null)          { <option value="" selected>Latest</option>             } else { <option value="">Latest</option>             }
+                        @if (f.SortBy == "rent_asc")    { <option value="rent_asc" selected>Rent: Low → High</option>  } else { <option value="rent_asc">Rent: Low → High</option>  }
+                        @if (f.SortBy == "rent_desc")   { <option value="rent_desc" selected>Rent: High → Low</option> } else { <option value="rent_desc">Rent: High → Low</option> }
+                        @if (f.SortBy == "views")       { <option value="views" selected>Most Viewed</option>          } else { <option value="views">Most Viewed</option>          }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100">Apply Filters</button>
+                <a asp-action="Browse" class="btn btn-outline-secondary btn-sm w-100 mt-1">Clear</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Room Grid -->
+    <div class="col-lg-9">
+        @if (!Model.Items.Any())
+        {
+            <div class="brf-card">
+                <div class="empty-state">
+                    <i class="bi bi-building-slash"></i>
+                    <h5>No rooms match your filters</h5>
+                    <p>Try adjusting your search criteria</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var r in Model.Items)
+                {
+                    var photo   = r.Photos?.FirstOrDefault(p => p.IsPrimary) ?? r.Photos?.FirstOrDefault();
+                    var isSaved = savedIds.Contains(r.Id);
+                    <div class="col-md-6 col-xl-4">
+                        <div class="room-card h-100">
+                            <a asp-action="RoomDetail" asp-route-id="@r.Id" class="text-decoration-none d-block">
+                                @if (photo != null)
+                                {
+                                    <img src="@photo.PhotoPath" class="room-card-img" alt="@r.Title"/>
+                                }
+                                else
+                                {
+                                    <div class="room-card-img-placeholder">
+                                        <i class="bi bi-building text-muted" style="font-size:2.5rem"></i>
+                                    </div>
+                                }
+                            </a>
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <a asp-action="RoomDetail" asp-route-id="@r.Id" class="fw-700 text-dark text-decoration-none small">@r.Title</a>
+                                    @if (r.Owner?.IsVerified == true)
+                                    {
+                                        <span class="verified-badge"><i class="bi bi-patch-check-fill"></i></span>
+                                    }
+                                </div>
+                                <div class="text-muted small mb-2">
+                                    <i class="bi bi-geo-alt me-1"></i>@r.Thana, @r.District
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="rent-badge">৳@r.Rent.ToString("N0")<span style="font-size:.7rem;font-weight:400">/mo</span></span>
+                                    <span class="badge bg-light text-dark small">@r.RoomType</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    @foreach (var fac in (r.Facilities ?? new List<RoomFacility>()).Take(3))
+                                    {
+                                        <span class="facility-chip">@fac.FacilityName</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a asp-action="RoomDetail" asp-route-id="@r.Id" class="btn btn-primary btn-sm flex-fill">View Details</a>
+                                    @if (Context.Session.GetInt32("UserId") != null)
+                                    {
+                                        <form asp-action="@(isSaved ? "UnsaveRoom" : "SaveRoom")" asp-route-roomId="@r.Id" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-sm @(isSaved ? "btn-warning" : "btn-outline-secondary")" title="@(isSaved ? "Unsave" : "Save")">
+                                                <i class="bi @(isSaved ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="mt-4 d-flex justify-content-center">
+                    <ul class="pagination">
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" asp-action="Browse"
+                                   asp-route-page="@i" asp-route-search="@f.Search"
+                                   asp-route-district="@f.District" asp-route-roomType="@f.RoomType"
+                                   asp-route-minRent="@f.MinRent" asp-route-maxRent="@f.MaxRent"
+                                   asp-route-sortBy="@f.SortBy">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</div>

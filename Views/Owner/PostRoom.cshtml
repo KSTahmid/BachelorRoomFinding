@@ -1,0 +1,164 @@
+@model RoomCreateViewModel
+@{ViewData["Title"] = "Post a Room";}
+
+@{
+    var facilities = new[]{"WiFi","Gas","Water","Electricity","AC","Parking","Lift","Security Guard","CCTV","Furnished"};
+    var districts  = new[]{"Dhaka","Chattogram","Sylhet","Rajshahi","Khulna","Barisal","Rangpur","Mymensingh"};
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Post a New Room</h1>
+    <a asp-action="MyRooms" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>My Rooms</a>
+</div>
+
+<form asp-action="PostRoom" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3 small"></div>
+
+    <div class="row g-3">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <div class="form-card mb-3">
+                <p class="section-label">Basic Info</p>
+                <div class="mb-3">
+                    <label class="form-label">Room Title *</label>
+                    <input asp-for="Title" class="form-control" placeholder="e.g. Spacious Single Room in Mirpur 10"/>
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea asp-for="Description" class="form-control" rows="4" placeholder="Describe the room, amenities, surroundings..."></textarea>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Room Type *</label>
+                        <select asp-for="RoomType" class="form-select">
+                            <option value="Single">Single</option>
+                            <option value="Double">Double</option>
+                            <option value="Shared">Shared</option>
+                            <option value="Flat">Flat/Apartment</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Bedrooms</label>
+                        <input asp-for="BedroomCount" type="number" min="1" max="20" class="form-control"/>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Available From</label>
+                        <input asp-for="AvailableFrom" type="date" class="form-control"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card mb-3">
+                <p class="section-label">Location</p>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">District *</label>
+                        <select asp-for="District" class="form-select">
+                            <option value="">-- Select --</option>
+                            @foreach(var d in districts){ <option value="@d">@d</option> }
+                        </select>
+                        <span asp-validation-for="District" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Thana/Area *</label>
+                        <input asp-for="Thana" class="form-control" placeholder="e.g. Mirpur 10"/>
+                        <span asp-validation-for="Thana" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Full Address *</label>
+                        <input asp-for="Address" class="form-control" placeholder="House/Road/Block"/>
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card mb-3">
+                <p class="section-label">Facilities</p>
+                <div class="row g-2">
+                    @foreach (var f in facilities)
+                    {
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="SelectedFacilities" value="@f" id="fac_@f.Replace(" ","_")"
+                                       @(Model.SelectedFacilities.Contains(f) ? "checked" : "")/>
+                                <label class="form-check-label small" for="fac_@f.Replace(" ","_")">@f</label>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="form-card mb-3">
+                <p class="section-label">House Rules</p>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input asp-for="NoSmoking" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label small">No Smoking</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input asp-for="NoPets" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label small">No Pets</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Gender Rule</label>
+                        <select asp-for="GenderRule" class="form-select form-select-sm">
+                            <option value="Any">Any Gender</option>
+                            <option value="Male">Male Only</option>
+                            <option value="Female">Female Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card mb-3">
+                <p class="section-label">Photos (max 5MB each, jpg/png)</p>
+                <input type="file" name="PhotoFiles" class="form-control" multiple accept=".jpg,.jpeg,.png"/>
+                <div class="form-text">Upload multiple photos. First photo will be the cover.</div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <div class="form-card mb-3">
+                <p class="section-label">Pricing (BDT ৳)</p>
+                <div class="mb-3">
+                    <label class="form-label">Monthly Rent *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="Rent" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                    <span asp-validation-for="Rent" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Security Deposit</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="SecurityDeposit" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Advance</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="Advance" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <p class="section-label">Submit</p>
+                <p class="text-muted small">Your room will be reviewed by admin before going live.</p>
+                <button type="submit" class="btn btn-primary w-100 py-2">
+                    <i class="bi bi-send me-2"></i>Submit for Approval
+                </button>
+                <a asp-action="MyRooms" class="btn btn-outline-secondary w-100 mt-2">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,58 @@
+@model ApplicationViewModel
+@{ViewData["Title"] = "Apply for Room"; var room = ViewBag.Room as Room;}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-send me-2 text-primary"></i>Apply for Room</h1>
+    <a asp-action="RoomDetail" asp-route-id="@Model.RoomId" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="form-card">
+            <form asp-action="Apply" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="RoomId" type="hidden"/>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3 small"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">Preferred Move-in Date *</label>
+                    <input asp-for="MoveInDate" type="date" class="form-control"
+                           min="@DateTime.Today.ToString("yyyy-MM-dd")"/>
+                    <span asp-validation-for="MoveInDate" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Duration (months) *</label>
+                    <select asp-for="DurationMonths" class="form-select">
+                        @for (int i = 1; i <= 24; i++)
+                        { <option value="@i">@i month@(i>1?"s":"")</option> }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Message to Owner <span class="text-muted">(optional)</span></label>
+                    <textarea asp-for="Message" class="form-control" rows="4"
+                              placeholder="Introduce yourself, mention your profession, family size, etc."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2">
+                    <i class="bi bi-send me-2"></i>Submit Application
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        @if (room != null)
+        {
+            <div class="form-card">
+                <p class="section-label">Room Summary</p>
+                <h6 class="fw-700">@room.Title</h6>
+                <div class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i>@room.Thana, @room.District</div>
+                <div class="rent-badge mb-2">৳@room.Rent.ToString("N0")/mo</div>
+                <div class="small text-muted">
+                    <div><i class="bi bi-shield me-1"></i>Security: ৳@room.SecurityDeposit.ToString("N0")</div>
+                    <div><i class="bi bi-cash me-1"></i>Advance: ৳@room.Advance.ToString("N0")</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

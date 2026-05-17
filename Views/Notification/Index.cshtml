@@ -1,0 +1,35 @@
+@model List<Notification>
+@{ViewData["Title"] = "Notifications";}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-bell me-2"></i>Notifications</h1>
+    <form asp-action="MarkAllRead" method="post">
+        @Html.AntiForgeryToken()
+        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-check-all me-1"></i>Mark All Read</button>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="brf-card"><div class="empty-state"><i class="bi bi-bell-slash"></i><h5>No notifications</h5><p>You're all caught up!</p></div></div>
+}
+else
+{
+    <div class="brf-card">
+        @foreach (var n in Model)
+        {
+            <div class="d-flex gap-3 p-3 border-bottom @(n.IsRead ? "" : "bg-light")" style="transition:.2s">
+                <div class="stat-icon @(n.Type==NotificationType.KycApproval?"green":n.Type==NotificationType.NewMessage?"blue":n.Type==NotificationType.PaymentConfirmed?"yellow":"purple")"
+                     style="width:38px;height:38px;border-radius:8px;flex-shrink:0;font-size:.9rem">
+                    <i class="bi @(n.Type==NotificationType.NewMessage?"bi-chat-dots":n.Type==NotificationType.KycApproval?"bi-shield-check":n.Type==NotificationType.PaymentConfirmed?"bi-cash-coin":"bi-bell")"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-600 small @(n.IsRead?"text-muted":"")">@n.Title</div>
+                    <div class="text-muted small">@n.NotificationMessage</div>
+                    <div class="text-muted" style="font-size:.72rem">@n.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                </div>
+                @if (!n.IsRead) { <span class="badge-status badge-active align-self-start" style="flex-shrink:0">New</span> }
+            </div>
+        }
+    </div>
+}

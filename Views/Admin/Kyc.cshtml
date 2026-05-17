@@ -1,0 +1,62 @@
+@model PagedResult<KycDocument>
+@{ViewData["Title"] = "KYC Review";}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-shield-check me-2"></i>KYC Review</h1>
+    <span class="badge bg-warning text-dark">@Model.Items.Count(k => k.Status == KycStatus.Pending) Pending</span>
+</div>
+
+<div class="brf-card">
+    <div class="table-responsive">
+        <table class="table brf-table mb-0">
+            <thead><tr>
+                <th>User</th><th>NID Number</th><th>Submitted</th><th>Documents</th><th>Status</th><th>Note</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+            @foreach (var k in Model.Items)
+            {
+                <tr>
+                    <td>
+                        <div class="fw-600 small">@k.User?.UserName</div>
+                        <div class="text-muted" style="font-size:.75rem">@k.User?.Email</div>
+                    </td>
+                    <td class="small">@k.NationalIdNumber</td>
+                    <td class="small text-muted">@k.SubmittedAt.ToString("dd MMM yy")</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            @if (k.NidFrontPath != null) { <a href="@k.NidFrontPath" target="_blank" class="btn btn-xs btn-outline-secondary btn-sm-action"><i class="bi bi-image"></i> Front</a> }
+                            @if (k.NidBackPath != null)  { <a href="@k.NidBackPath"  target="_blank" class="btn btn-xs btn-outline-secondary btn-sm-action"><i class="bi bi-image"></i> Back</a>  }
+                            @if (k.FacePhotoPath != null){ <a href="@k.FacePhotoPath" target="_blank" class="btn btn-xs btn-outline-info btn-sm-action"><i class="bi bi-person-square"></i> Face</a>  }
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge-status @(k.Status==KycStatus.Approved?"badge-approved":k.Status==KycStatus.Rejected?"badge-rejected":"badge-pending")">@k.Status</span>
+                    </td>
+                    <td class="small text-muted">@(k.ReviewNote ?? "—")</td>
+                    <td>
+                        @if (k.Status == KycStatus.Pending)
+                        {
+                            <div class="d-flex gap-1">
+                                <form asp-action="ApproveKyc" asp-route-id="@k.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-success btn-sm-action"><i class="bi bi-check-lg"></i> Approve</button>
+                                </form>
+                                <form asp-action="RejectKyc" asp-route-id="@k.Id" method="post" class="d-flex gap-1">
+                                    @Html.AntiForgeryToken()
+                                    <input name="note" class="form-control form-control-sm" placeholder="Reason..." style="width:130px" required />
+                                    <button class="btn btn-sm btn-danger btn-sm-action"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            </div>
+                        }
+                        else { <span class="text-muted small">Reviewed</span> }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="7"><div class="empty-state py-4"><i class="bi bi-shield-check"></i><h5>No KYC submissions</h5></div></td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

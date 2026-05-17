@@ -1,0 +1,325 @@
+@model Room
+@{ViewData["Title"] = Model.Title; var uid = Context.Session.GetInt32("UserId");}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Browse">Browse</a></li>
+        <li class="breadcrumb-item active">@Model.Title</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Left: Photos + Details -->
+    <div class="col-lg-8">
+        <!-- Photo Gallery -->
+        <div class="brf-card mb-3 overflow-hidden">
+            @if (Model.Photos?.Any() == true)
+            {
+                var primary = Model.Photos.FirstOrDefault(p => p.IsPrimary) ?? Model.Photos.First();
+                <img src="@primary.PhotoPath" class="w-100" style="height:380px;object-fit:cover" alt="@Model.Title" id="mainPhoto"/>
+                @if (Model.Photos.Count > 1)
+                {
+                    <div class="d-flex gap-2 p-2 overflow-x-auto">
+                        @foreach (var p in Model.Photos)
+                        {
+                            <img src="@p.PhotoPath" style="height:70px;width:100px;object-fit:cover;border-radius:6px;cursor:pointer;opacity:@(p.IsPrimary?"1":".6")"
+                                 onclick="document.getElementById('mainPhoto').src='@p.PhotoPath';this.style.opacity='1'" alt="photo"/>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="room-card-img-placeholder" style="height:300px"><i class="bi bi-building text-muted" style="font-size:4rem"></i></div>
+            }
+        </div>
+
+        <!-- Title & Info -->
+        <div class="form-card mb-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <h1 class="page-title mb-1" style="font-size:1.6rem">@Model.Title</h1>
+                    <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>@Model.Address, @Model.Thana, @Model.District</div>
+                </div>
+                <div class="text-end">
+                    <div class="rent-badge fs-5">৳@Model.Rent.ToString("N0")<span style="font-size:.75rem;font-weight:400">/mo</span></div>
+                    <div class="text-muted small mt-1"><i class="bi bi-eye me-1"></i>@Model.ViewCount views</div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap mb-3 align-items-center">
+                <span class="badge bg-primary">@Model.RoomType</span>
+                <span class="badge bg-secondary">@Model.BedroomCount Bed(s)</span>
+                <span class="badge-status @(Model.IsAvailable?"badge-active":"badge-rented")">@(Model.IsAvailable?"Available":"Occupied")</span>
+                
+                <!-- Safety Shield -->
+                <div class="d-inline-flex align-items-center bg-light border rounded-pill px-2 py-1 ms-2" title="Safety Score based on verification and reviews">
+                    <i class="bi bi-shield-check text-success me-1"></i>
+                    <span class="fw-bold small text-success">@Model.SafetyScore</span>
+                    <span class="text-muted small ms-1" style="font-size:.7rem">Safety</span>
+                </div>
+
+                @if(Model.AvailableFrom.HasValue) { <span class="badge bg-light text-dark">From @Model.AvailableFrom?.ToString("dd MMM yyyy")</span> }
+            </div>
+            <p class="text-muted">@Model.Description</p>
+
+            <!-- Pricing -->
+            <div class="row g-2 mb-3">
+                <div class="col-4 text-center p-2 bg-light rounded">
+                    <div class="fw-700 text-primary">৳@Model.Rent.ToString("N0")</div><div class="small text-muted">Monthly Rent</div>
+                </div>
+                <div class="col-4 text-center p-2 bg-light rounded">
+                    <div class="fw-700">৳@Model.SecurityDeposit.ToString("N0")</div><div class="small text-muted">Security</div>
+                </div>
+                <div class="col-4 text-center p-2 bg-light rounded">
+                    <div class="fw-700">৳@Model.Advance.ToString("N0")</div><div class="small text-muted">Advance</div>
+                </div>
+            </div>
+
+            <!-- Facilities -->
+            @if (Model.Facilities?.Any() == true)
+            {
+                <p class="section-label">Facilities</p>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var f in Model.Facilities)
+                    { <span class="facility-chip"><i class="bi bi-check-circle me-1 text-success"></i>@f.FacilityName</span> }
+                </div>
+            }
+
+            <!-- Rules -->
+            @if (!string.IsNullOrEmpty(Model.Rules))
+            {
+                <p class="section-label">House Rules</p>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var rule in Model.Rules.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                    { <span class="facility-chip text-danger"><i class="bi bi-x-circle me-1"></i>@rule</span> }
+                </div>
+            }
+        </div>
+
+        <!-- Reviews -->
+        <div class="form-card mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-600"><i class="bi bi-star me-2 text-warning"></i>Reviews
+                    @if (Model.Reviews?.Any() == true)
+                    { <span class="badge bg-warning text-dark ms-1">⭐ @ViewBag.AvgRating / 5</span> }
+                </h6>
+                @if (uid != null)
+                { <a asp-action="Review" asp-route-roomId="@Model.Id" class="btn btn-sm btn-outline-warning">Write Review</a> }
+            </div>
+            @if (Model.Reviews?.Any() == true)
+            {
+                @foreach (var r in Model.Reviews.Take(5))
+                {
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-600 small">@r.Reviewer?.UserName</span>
+                            <span class="text-warning small">@string.Concat(Enumerable.Repeat("⭐", r.Rating))</span>
+                        </div>
+                        <p class="text-muted small mb-0">@r.Comment</p>
+                        <div class="text-muted" style="font-size:.72rem">@r.CreatedAt.ToString("dd MMM yyyy")</div>
+                    </div>
+                }
+            }
+            else { <p class="text-muted small">No reviews yet. Be the first!</p> }
+        </div>
+
+        <!-- Map -->
+        <div class="form-card mb-3">
+            <p class="section-label"><i class="bi bi-map me-2"></i>Location Map</p>
+            <div style="border-radius:8px;overflow:hidden">
+                <iframe
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=90.2,23.6,90.6,23.9&layer=mapnik&marker=23.75,90.39"
+                    width="100%" height="250" frameborder="0"
+                    title="Room location: @Model.Address, @Model.District"></iframe>
+            </div>
+            <div class="text-muted small mt-2"><i class="bi bi-geo-alt me-1"></i>@Model.Address, @Model.Thana, @Model.District</div>
+        </div>
+    </div>
+
+    <!-- Right: Owner + Apply -->
+    <div class="col-lg-4">
+        <!-- Owner Card -->
+        <div class="form-card mb-3">
+            <p class="section-label">Owner</p>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="avatar-sm" style="width:48px;height:48px;font-size:1.2rem;background:#2563EB">
+                    @(Model.Owner?.UserName?[0].ToString().ToUpper() ?? "O")
+                </div>
+                <div>
+                    <div class="fw-700">@Model.Owner?.UserName</div>
+                    @if (Model.Owner?.IsVerified == true)
+                    { <div class="verified-badge small"><i class="bi bi-patch-check-fill me-1"></i>Verified Owner</div> }
+                </div>
+            </div>
+            @if (uid != null && uid.Value != Model.OwnerId)
+            {
+                <a asp-controller="Message" asp-action="Conversation" asp-route-userId="@Model.OwnerId"
+                   class="btn btn-outline-primary btn-sm w-100 mb-2">
+                    <i class="bi bi-chat-dots me-2"></i>Message Owner
+                </a>
+            }
+        </div>
+
+        <!-- Monthly Cost Estimator -->
+        <div class="form-card mb-3 border-primary border-opacity-25 bg-primary bg-opacity-10">
+            <p class="section-label text-primary border-primary border-opacity-25"><i class="bi bi-calculator me-2"></i>Monthly Budget Estimator</p>
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Usage Level (Electricity/AC)</label>
+                <select id="usageLevel" class="form-select form-select-sm" onchange="calculateBudget()">
+                    <option value="500">Light (Fan/Light only)</option>
+                    <option value="1200" selected>Medium (PC/Fridge)</option>
+                    <option value="2500">Heavy (AC/Heater)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Daily Commute (km)</label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="range" id="commuteDist" class="form-range" min="0" max="20" step="1" value="5" oninput="distVal.textContent=this.value+' km';calculateBudget()">
+                    <span id="distVal" class="badge bg-white text-dark border small">5 km</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Food Preference</label>
+                <select id="foodPref" class="form-select form-select-sm" onchange="calculateBudget()">
+                    <option value="3000">Self Cook (Cheap)</option>
+                    <option value="5500" selected>Mess/Canteen (Standard)</option>
+                    <option value="9000">Dining Out (Premium)</option>
+                </select>
+            </div>
+
+            <hr class="my-3 opacity-10">
+            
+            <div class="small">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Base Rent</span>
+                    <span class="fw-600">৳<span id="estRent">@Model.Rent</span></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Utilities & WiFi</span>
+                    <span class="fw-600">৳<span id="estUtils">0</span></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Food</span>
+                    <span class="fw-600">৳<span id="estFood">0</span></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Transport</span>
+                    <span class="fw-600">৳<span id="estTrans">0</span></span>
+                </div>
+                <div class="d-flex justify-content-between mt-2 pt-2 border-top border-primary border-opacity-25">
+                    <span class="fw-800 text-primary">Estimated Total</span>
+                    <span class="fw-800 text-primary fs-5">৳<span id="estTotal">0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Apply Card -->
+        @if (uid == null)
+        {
+            <div class="form-card text-center">
+                <i class="bi bi-lock fs-2 text-muted"></i>
+                <p class="mt-2 text-muted small">Login to apply for this room</p>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-primary w-100">Login to Apply</a>
+            </div>
+        }
+        else if ((bool)ViewBag.AlreadyApplied)
+        {
+            <div class="form-card text-center">
+                <i class="bi bi-check-circle fs-2 text-success"></i>
+                <p class="mt-2 fw-600">Already Applied</p>
+                <a asp-controller="UserDashboard" asp-action="Dashboard" class="btn btn-outline-primary btn-sm w-100">View My Applications</a>
+            </div>
+        }
+        else
+        {
+            <div class="form-card">
+                <p class="section-label">Apply for this Room</p>
+                <a asp-action="Apply" asp-route-roomId="@Model.Id" class="btn btn-primary w-100 py-2">
+                    <i class="bi bi-send me-2"></i>Apply Now
+                </a>
+                <form asp-action="SaveRoom" asp-route-roomId="@Model.Id" method="post" class="mt-2">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn @((bool)ViewBag.IsSaved?"btn-warning":"btn-outline-secondary") w-100">
+                        <i class="bi @((bool)ViewBag.IsSaved?"bi-bookmark-fill":"bi-bookmark") me-2"></i>
+                        @((bool)ViewBag.IsSaved ? "Saved" : "Save Room")
+                    </button>
+                </form>
+            </div>
+
+            <!-- Safety Actions -->
+            <div class="mt-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-danger btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Report
+                    </button>
+                    <a href="tel:999" class="btn btn-danger btn-sm flex-fill">
+                        <i class="bi bi-telephone-fill me-1"></i>Emergency
+                    </a>
+                </div>
+                <p class="text-center text-muted mt-2" style="font-size:.7rem">Always verify the room in person before paying.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Report Suspicious Activity</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ReportRoom" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="roomId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Reason for reporting</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="SuspiciousListing">Suspicious Listing</option>
+                            <option value="FakePhotos">Fake Photos</option>
+                            <option value="MisleadingInfo">Misleading Information</option>
+                            <option value="Harassment">Owner Harassment</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Additional Details</label>
+                        <textarea name="details" class="form-control" rows="3" placeholder="Please provide more info..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-4">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function calculateBudget() {
+            const rent = @Model.Rent;
+            const electricity = parseInt(document.getElementById('usageLevel').value);
+            const wifi = 500; // Fixed estimate for WiFi
+            const food = parseInt(document.getElementById('foodPref').value);
+            const distance = parseInt(document.getElementById('commuteDist').value);
+            
+            // Transport formula: distance * 2 ways * 22 working days * 10 BDT avg rate
+            const transport = distance * 2 * 22 * 10;
+            
+            const utils = electricity + wifi;
+            const total = rent + utils + food + transport;
+
+            document.getElementById('estUtils').textContent = utils.toLocaleString();
+            document.getElementById('estFood').textContent = food.toLocaleString();
+            document.getElementById('estTrans').textContent = transport.toLocaleString();
+            document.getElementById('estTotal').textContent = total.toLocaleString();
+        }
+        
+        // Initial calculation
+        document.addEventListener('DOMContentLoaded', calculateBudget);
+    </script>
+}

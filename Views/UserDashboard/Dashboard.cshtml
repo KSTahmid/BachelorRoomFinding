@@ -1,0 +1,114 @@
+@{ViewData["Title"] = "My Dashboard";}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>My Dashboard</h1>
+    <a asp-action="Browse" class="btn btn-primary btn-sm"><i class="bi bi-search me-1"></i>Browse Rooms</a>
+</div>
+
+<!-- Quick stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-file-earmark-text"></i></div>
+            <div>
+                <div class="stat-value">@((ViewBag.MyApplications as List<RentalApplication>)?.Count ?? 0)</div>
+                <div class="stat-label">Applied Rooms</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+            <div><div class="stat-value">@(ViewBag.ApprovedCount ?? 0)</div><div class="stat-label">Approved</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon yellow"><i class="bi bi-bookmark-heart"></i></div>
+            <div><div class="stat-value">@(ViewBag.SavedCount ?? 0)</div><div class="stat-label">Saved Rooms</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon @(ViewBag.KycStatus?.ToString()=="Approved"?"green":ViewBag.KycStatus?.ToString()=="Pending"?"yellow":"red")">
+                <i class="bi bi-patch-check"></i>
+            </div>
+            <div><div class="stat-value" style="font-size:1rem;padding-top:.25rem">@(ViewBag.KycStatus ?? "N/A")</div><div class="stat-label">KYC Status</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Applications -->
+<div class="brf-card mb-4">
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-600"><i class="bi bi-file-earmark-person me-2 text-primary"></i>My Applications</h6>
+        <a asp-action="Browse" class="btn btn-sm btn-outline-primary">Find Rooms</a>
+    </div>
+    @{var apps = ViewBag.MyApplications as List<RentalApplication>;}
+    @if (apps == null || !apps.Any())
+    {
+        <div class="empty-state"><i class="bi bi-search"></i><h5>No applications yet</h5>
+            <p>Browse rooms and apply for ones you like</p>
+            <a asp-action="Browse" class="btn btn-primary btn-sm mt-2">Browse Rooms</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table brf-table mb-0">
+                <thead><tr><th>Room</th><th>Rent</th><th>Move-in</th><th>Applied</th><th>Status</th><th>Payment</th></tr></thead>
+                <tbody>
+                @foreach (var a in apps)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-600 small">@a.Room?.Title</div>
+                            <div class="text-muted" style="font-size:.75rem">@a.Room?.District, @a.Room?.Thana</div>
+                        </td>
+                        <td><span class="rent-badge" style="font-size:.78rem">৳@a.Room?.Rent.ToString("N0")</span></td>
+                        <td class="small">@a.MoveInDate.ToString("dd MMM yyyy")</td>
+                        <td class="small text-muted">@a.AppliedAt.ToString("dd MMM")</td>
+                        <td><span class="badge-status @(a.Status==ApplicationStatus.Approved?"badge-approved":a.Status==ApplicationStatus.Rejected?"badge-rejected":"badge-pending")">@a.Status</span></td>
+                        <td>
+                            @if (a.Status == ApplicationStatus.Approved && a.Payment == null)
+                            {
+                                <a asp-action="Payment" asp-route-applicationId="@a.Id" class="btn btn-sm btn-primary btn-sm-action">Pay Now</a>
+                            }
+                            else if (a.Payment != null)
+                            {
+                                <span class="badge-status @(a.Payment.Status==PaymentStatus.Confirmed?"badge-approved":"badge-pending")">@a.Payment.Status</span>
+                            }
+                            else { <span class="text-muted small">—</span> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Quick Links -->
+<div class="row g-3">
+    <div class="col-md-4">
+        <a asp-action="SavedRooms" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-bookmark-heart fs-2 text-warning"></i>
+            <div class="fw-600 mt-1">Saved Rooms</div>
+            <div class="text-muted small">@(ViewBag.SavedCount ?? 0) saved</div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-controller="Message" asp-action="Inbox" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-chat-dots fs-2 text-primary"></i>
+            <div class="fw-600 mt-1">Messages</div>
+            <div class="text-muted small">Owner conversations</div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-action="Kyc" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-patch-check fs-2 text-success"></i>
+            <div class="fw-600 mt-1">KYC Verification</div>
+            <div class="text-muted small">Status: @(ViewBag.KycStatus ?? "Not Submitted")</div>
+        </a>
+    </div>
+</div>

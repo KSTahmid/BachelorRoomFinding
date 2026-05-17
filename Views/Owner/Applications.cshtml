@@ -1,0 +1,79 @@
+@model List<RentalApplication>
+@{ViewData["Title"] = "Rental Applications";}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-file-earmark-person me-2"></i>Rental Applications</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="brf-card"><div class="empty-state"><i class="bi bi-inbox"></i><h5>No applications received yet</h5></div></div>
+}
+else
+{
+    <div class="brf-card">
+        <div class="table-responsive">
+            <table class="table brf-table mb-0">
+                <thead><tr>
+                    <th>Room</th><th>Applicant</th><th>Move-in</th><th>Duration</th><th>Message</th><th>Status</th><th>Payment</th><th>Action</th>
+                </tr></thead>
+                <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td class="fw-600 small">@a.Room?.Title<br/><span class="text-muted">@a.Room?.District</span></td>
+                        <td>
+                            <div class="fw-600 small">@a.Applicant?.UserName</div>
+                            <div class="text-muted" style="font-size:.73rem">@a.Applicant?.Email</div>
+                            <div class="text-muted" style="font-size:.73rem">@a.Applicant?.PhoneNumber</div>
+                        </td>
+                        <td class="small">@a.MoveInDate.ToString("dd MMM yyyy")</td>
+                        <td class="small">@a.DurationMonths mo</td>
+                        <td class="small text-muted" style="max-width:150px">@(a.Message?.Length > 60 ? a.Message[..60]+"..." : a.Message ?? "—")</td>
+                        <td>
+                            <span class="badge-status @(a.Status==ApplicationStatus.Approved?"badge-approved":a.Status==ApplicationStatus.Rejected?"badge-rejected":"badge-pending")">@a.Status</span>
+                        </td>
+                        <td>
+                            @if (a.Payment != null)
+                            { 
+                                <div class="small">
+                                    <span class="badge bg-light text-dark">@a.Payment.Method</span>
+                                    <span class="badge-status @(a.Payment.Status==PaymentStatus.Confirmed?"badge-approved":"badge-pending")">@a.Payment.Status</span>
+                                    @if (!string.IsNullOrEmpty(a.Payment.TransactionId))
+                                    {
+                                        <div class="text-muted mt-1" style="font-size:.7rem">TXID: <span class="fw-600">@a.Payment.TransactionId</span></div>
+                                    }
+                                </div>
+                            }
+                            else { <span class="text-muted small">—</span> }
+                        </td>
+                        <td>
+                            @if (a.Status == ApplicationStatus.Pending)
+                            {
+                                <div class="d-flex gap-1">
+                                    <form asp-action="ApproveApplication" asp-route-id="@a.Id" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-success btn-sm-action" title="Approve"><i class="bi bi-check-lg"></i></button>
+                                    </form>
+                                    <form asp-action="DeclineApplication" asp-route-id="@a.Id" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-danger btn-sm-action" title="Decline"><i class="bi bi-x-lg"></i></button>
+                                    </form>
+                                </div>
+                            }
+                            else if (a.Status == ApplicationStatus.Approved && a.Payment != null && a.Payment.Status == PaymentStatus.Pending)
+                            {
+                                <form asp-action="ConfirmPayment" asp-route-applicationId="@a.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-primary btn-sm-action"><i class="bi bi-cash-coin me-1"></i>Confirm Payment</button>
+                                </form>
+                            }
+                            else { <span class="text-muted small">—</span> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

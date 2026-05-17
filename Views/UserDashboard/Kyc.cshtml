@@ -1,0 +1,42 @@
+@model KycViewModel
+@{ViewData["Title"] = "KYC Verification"; var existing = ViewBag.Existing as KycDocument;}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-patch-check me-2"></i>KYC Verification</h1>
+</div>
+
+@if (existing != null)
+{
+    <div class="alert @(existing.Status==KycStatus.Approved?"alert-success":existing.Status==KycStatus.Rejected?"alert-danger":"alert-warning") mb-3">
+        <strong>KYC Status: @existing.Status</strong>
+        @if (existing.ReviewNote != null) { <span> — @existing.ReviewNote</span> }
+        @if (existing.Status == KycStatus.Approved) { <span> ✓ Your identity is verified!</span> }
+    </div>
+}
+
+<div class="form-card" style="max-width:600px">
+    <p class="section-label">@(existing != null ? "Re-submit Documents" : "Submit Identity Documents")</p>
+    <form asp-action="Kyc" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label">National ID Number *</label>
+            <input asp-for="NationalIdNumber" class="form-control" placeholder="17-digit NID number"/>
+            <span asp-validation-for="NationalIdNumber" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">NID Front Photo <span class="text-muted small">(jpg/png, max 5MB)</span></label>
+            <input type="file" name="NidFrontFile" class="form-control" accept=".jpg,.jpeg,.png"/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">NID Back Photo</label>
+            <input type="file" name="NidBackFile" class="form-control" accept=".jpg,.jpeg,.png"/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Selfie / Face Photo</label>
+            <input type="file" name="FacePhotoFile" class="form-control" accept=".jpg,.jpeg,.png"/>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-upload me-2"></i>Submit KYC
+        </button>
+    </form>
+</div>

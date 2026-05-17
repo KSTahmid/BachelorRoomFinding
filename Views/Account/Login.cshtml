@@ -1,10 +1,62 @@
-﻿<h2>Login</h2>
-<form asp-action="Login" method="post">
-    <div class="form-group"><label>Email</label><input name="email" class="form-control" /></div>
-    <div class="form-group"><label>Password</label><input name="password" type="password" class="form-control" /></div>
-    <button type="submit" class="btn btn-primary">Login</button>
-    @if (ViewBag.Error != null)
-    {
-        <p class="text-danger">@ViewBag.Error</p>
-    }
-</form>
+@model LoginViewModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login — BRF</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="auth-page">
+<div class="auth-card">
+    <div class="auth-logo">
+        <div class="logo-icon"><i class="bi bi-house-door-fill"></i></div>
+        <h1>BRF</h1>
+        <p>Bangladesh's #1 Room Rental Platform</p>
+    </div>
+
+    <form asp-action="Login" method="post">
+        <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3 small"></div>
+
+        <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+                <input asp-for="Email" class="form-control border-start-0" placeholder="you@email.com" />
+            </div>
+            <span asp-validation-for="Email" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                <input asp-for="Password" type="password" class="form-control border-start-0" placeholder="••••••••" />
+            </div>
+            <span asp-validation-for="Password" class="text-danger small"></span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a asp-action="ForgotPassword" class="small text-primary">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 fw-600 py-2">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+        </button>
+    </form>
+
+    <p class="text-center mt-3 small text-muted">
+        Don't have an account? <a asp-action="Register" class="text-primary fw-600">Register here</a>
+    </p>
+    <hr />
+    <div class="text-center">
+        <p class="small text-muted mb-1">Demo Accounts</p>
+        <code class="small">admin@brf.com / admin123</code><br/>
+        <code class="small">owner@brf.com / owner123</code><br/>
+        <code class="small">user@brf.com / user123</code>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

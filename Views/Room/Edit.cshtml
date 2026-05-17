@@ -1,4 +1,4 @@
-@model Room
+@model BachelorRoomFinding.ViewModels.RoomCreateViewModel
 @{
     ViewData["Title"] = "Edit Room";
 }
@@ -8,53 +8,154 @@
 </div>
 
 <div class="row">
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <form asp-action="Edit" method="post">
+    <div class="col-md-10">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
                     <input type="hidden" asp-for="Id" />
-                    <input type="hidden" asp-for="PostedDate" />
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
                     <div class="row g-3">
                         <div class="col-12">
-                            <label asp-for="Title" class="form-label fw-semibold">Title</label>
-                            <input asp-for="Title" class="form-control" required />
+                            <label asp-for="Title" class="form-label fw-bold">Title <span class="text-danger">*</span></label>
+                            <input asp-for="Title" class="form-control form-control-lg" required />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
                         </div>
+                        
                         <div class="col-12">
-                            <label asp-for="Description" class="form-label fw-semibold">Description</label>
-                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <label asp-for="Description" class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                            <textarea asp-for="Description" class="form-control" rows="4" required></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
                         </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="District" class="form-label fw-bold">District <span class="text-danger">*</span></label>
+                            <input asp-for="District" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Thana" class="form-label fw-bold">Thana/Upazila <span class="text-danger">*</span></label>
+                            <input asp-for="Thana" class="form-control" required />
+                        </div>
+
                         <div class="col-12">
-                            <label asp-for="Address" class="form-label fw-semibold">Address</label>
-                            <input asp-for="Address" class="form-control" />
+                            <label asp-for="Address" class="form-label fw-bold">Full Address <span class="text-danger">*</span></label>
+                            <input asp-for="Address" class="form-control" required />
                         </div>
+
                         <div class="col-md-4">
-                            <label asp-for="Rent" class="form-label fw-semibold">Monthly Rent (৳)</label>
-                            <input asp-for="Rent" type="number" class="form-control" min="0" step="500" />
+                            <label asp-for="Rent" class="form-label fw-bold">Monthly Rent (৳) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">৳</span>
+                                <input asp-for="Rent" type="number" class="form-control" min="500" step="100" required />
+                            </div>
                         </div>
+
                         <div class="col-md-4">
-                            <label asp-for="BedroomCount" class="form-label fw-semibold">Bedrooms</label>
-                            <input asp-for="BedroomCount" type="number" class="form-control" min="1" />
+                            <label asp-for="SecurityDeposit" class="form-label fw-bold">Security Deposit (৳)</label>
+                            <input asp-for="SecurityDeposit" type="number" class="form-control" />
                         </div>
+
                         <div class="col-md-4">
-                            <label asp-for="OwnerId" class="form-label fw-semibold">Owner</label>
-                            <select asp-for="OwnerId" class="form-select">
-                                @foreach (var user in (IEnumerable<User>)ViewBag.Owners)
-                                {
-                                    <option value="@user.UserId">@user.UserName</option>
+                            <label asp-for="Advance" class="form-label fw-bold">Advance Payment (৳)</label>
+                            <input asp-for="Advance" type="number" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="BedroomCount" class="form-label fw-bold">Bedrooms</label>
+                            <input asp-for="BedroomCount" type="number" class="form-control" min="1" max="20" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="RoomType" class="form-label fw-bold">Room Type</label>
+                            <select asp-for="RoomType" class="form-select" asp-items="Html.GetEnumSelectList<BachelorRoomFinding.Entities.RoomType>()"></select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="OwnerId" class="form-label fw-bold">Owner <span class="text-danger">*</span></label>
+                            @if (ViewBag.Owners != null)
+                            {
+                                <select asp-for="OwnerId" class="form-select" required>
+                                    @foreach (var user in (IEnumerable<BachelorRoomFinding.Entities.User>)ViewBag.Owners)
+                                    {
+                                        <option value="@user.UserId" selected="@(user.UserId == Model.OwnerId)">@user.UserName (@user.Email)</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <div class="text-danger small">No owners found.</div>
+                            }
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Status" class="form-label fw-bold">Status</label>
+                            <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<BachelorRoomFinding.Entities.RoomStatus>()"></select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="AvailableFrom" class="form-label fw-bold">Available From</label>
+                            <input asp-for="AvailableFrom" type="date" class="form-control" />
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Facilities</label>
+                            <div class="row">
+                                @{
+                                    var facilities = new[] { "WiFi", "Attached Bath", "Balcony", "Generator", "Lift", "CCTV", "Security", "Parking" };
+                                    foreach (var f in facilities)
+                                    {
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="SelectedFacilities" value="@f" id="f_@f" 
+                                                       @(Model.SelectedFacilities.Contains(f) ? "checked" : "") />
+                                                <label class="form-check-label" for="f_@f">@f</label>
+                                            </div>
+                                        </div>
+                                    }
                                 }
-                            </select>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Availability</label>
-                            <div class="form-check mt-1">
-                                <input asp-for="IsAvailable" class="form-check-input" type="checkbox" />
-                                <label class="form-check-label">Available for rent</label>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label fw-bold">Rules</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input asp-for="NoSmoking" class="form-check-input" type="checkbox" />
+                                    <label asp-for="NoSmoking" class="form-check-label">No Smoking</label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="NoPets" class="form-check-input" type="checkbox" />
+                                    <label asp-for="NoPets" class="form-check-label">No Pets</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-bold">Gender Preference</label>
+                            <div class="mt-1">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" asp-for="GenderRule" value="Any" id="g_any">
+                                    <label class="form-check-label" for="g_any">Any</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" asp-for="GenderRule" value="Male" id="g_male">
+                                    <label class="form-check-label" for="g_male">Male Only</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" asp-for="GenderRule" value="Female" id="g_female">
+                                    <label class="form-check-label" for="g_female">Female Only</label>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-warning"><i class="bi bi-save me-1"></i>Update Room</button>
-                        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+
+                    <div class="d-flex gap-2 mt-5">
+                        <button type="submit" class="btn btn-warning btn-lg px-5"><i class="bi bi-save me-2"></i>Update Room</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancel</a>
                     </div>
                 </form>
             </div>

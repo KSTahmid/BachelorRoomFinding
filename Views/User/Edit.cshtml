@@ -27,12 +27,19 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="RoleId" class="form-label fw-semibold">Role</label>
-                            <select asp-for="RoleId" class="form-select">
-                                @foreach (var role in (IEnumerable<Role>)ViewBag.Roles)
-                                {
-                                    <option value="@role.Id">@role.RoleName</option>
-                                }
-                            </select>
+                            @if (ViewBag.Roles != null)
+                            {
+                                <select asp-for="RoleId" class="form-select">
+                                    @foreach (var role in (IEnumerable<Role>)ViewBag.Roles)
+                                    {
+                                        <option value="@role.Id">@role.RoleName</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <div class="text-danger small">No roles available.</div>
+                            }
                         </div>
                         <div class="col-md-6">
                             <label asp-for="LastLogin" class="form-label fw-semibold">Last Login</label>

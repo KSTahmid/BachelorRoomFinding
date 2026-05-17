@@ -1,0 +1,110 @@
+@model RoommateAd
+@{
+    ViewData["Title"] = "Post Roommate Ad";
+    var prefs = ViewBag.Prefs as UserPreference ?? new UserPreference();
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-megaphone me-2"></i>Post a Roommate Ad</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form asp-action="Create" method="post" class="form-card">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <p class="section-label mt-0">Ad Details</p>
+                <div class="col-12">
+                    <label class="form-label">Preferred Areas (e.g., Banani, Gulshan, Mirpur)</label>
+                    <input asp-for="PreferredAreas" class="form-control" required placeholder="Where are you looking for a room?" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Max Rent Per Person (৳)</label>
+                    <input asp-for="MaxRentPerPerson" type="number" class="form-control" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Target Move-in Date</label>
+                    <input asp-for="MoveInDate" type="date" class="form-control" required min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Roommates Needed</label>
+                    <select asp-for="NumberOfRoommatesNeeded" class="form-select">
+                        <option value="1">1 Roommate</option>
+                        <option value="2">2 Roommates</option>
+                        <option value="3">3 Roommates</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description (Introduce yourself and your requirements)</label>
+                    <textarea asp-for="Description" class="form-control" rows="5" required placeholder="I am a student at NSU looking for a quiet roommate..."></textarea>
+                </div>
+
+                <p class="section-label mt-4">Lifestyle Preferences (For Matching)</p>
+                <div class="col-md-6">
+                    <label class="form-label">Smoking</label>
+                    <select name="prefs.Smoking" class="form-select">
+                        <option value="Non-Smoker" selected="@(prefs.Smoking == "Non-Smoker")">Non-Smoker</option>
+                        <option value="Occasional" selected="@(prefs.Smoking == "Occasional")">Occasional</option>
+                        <option value="Regular" selected="@(prefs.Smoking == "Regular")">Regular</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Sleep Schedule</label>
+                    <select name="prefs.SleepSchedule" class="form-select">
+                        <option value="Early Bird" selected="@(prefs.SleepSchedule == "Early Bird")">Early Bird</option>
+                        <option value="Night Owl" selected="@(prefs.SleepSchedule == "Night Owl")">Night Owl</option>
+                        <option value="Flexible" selected="@(prefs.SleepSchedule == "Flexible")">Flexible</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cleanliness</label>
+                    <select name="prefs.Cleanliness" class="form-select">
+                        <option value="High" selected="@(prefs.Cleanliness == "High")">High (OCD Level)</option>
+                        <option value="Medium" selected="@(prefs.Cleanliness == "Medium")">Medium (Normal)</option>
+                        <option value="Low" selected="@(prefs.Cleanliness == "Low")">Low (Messy OK)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Food Habit</label>
+                    <select name="prefs.FoodHabit" class="form-select">
+                        <option value="Non-Veg" selected="@(prefs.FoodHabit == "Non-Veg")">Non-Veg</option>
+                        <option value="Veg" selected="@(prefs.FoodHabit == "Veg")">Veg Only</option>
+                        <option value="Both" selected="@(prefs.FoodHabit == "Both")">No Preference</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Guest Policy</label>
+                    <select name="prefs.GuestPolicy" class="form-select">
+                        <option value="Open" selected="@(prefs.GuestPolicy == "Open")">Open (Guests OK)</option>
+                        <option value="Restricted" selected="@(prefs.GuestPolicy == "Restricted")">Restricted (Notify First)</option>
+                        <option value="No-Guests" selected="@(prefs.GuestPolicy == "No-Guests")">No Guests Allowed</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Pet Friendly?</label>
+                    <select name="prefs.PetFriendly" class="form-select">
+                        <option value="Yes" selected="@(prefs.PetFriendly == "Yes")">Yes</option>
+                        <option value="No" selected="@(prefs.PetFriendly == "No")">No</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary btn-lg w-100">Post Ad</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-lg-4">
+        <div class="brf-card p-3 bg-light border-0">
+            <h6 class="fw-bold"><i class="bi bi-lightbulb me-2 text-warning"></i>Tips for finding matches</h6>
+            <ul class="small text-muted ps-3 mt-2">
+                <li>Be honest about your lifestyle preferences.</li>
+                <li>Write a detailed description to attract similar people.</li>
+                <li>Mention your university or workplace.</li>
+                <li>Upload a profile picture for better trust.</li>
+            </ul>
+        </div>
+    </div>
+</div>

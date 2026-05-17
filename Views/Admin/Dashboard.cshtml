@@ -1,0 +1,126 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>Admin Dashboard</h1>
+    <span class="text-muted small">Welcome back, @Context.Session.GetString("UserName")</span>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-people-fill"></i></div>
+            <div><div class="stat-value">@ViewBag.TotalUsers</div><div class="stat-label">Total Users</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon yellow"><i class="bi bi-person-badge"></i></div>
+            <div><div class="stat-value">@ViewBag.TotalOwners</div><div class="stat-label">Owners</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-building"></i></div>
+            <div><div class="stat-value">@ViewBag.TotalRooms</div><div class="stat-label">Total Rooms</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+            <div><div class="stat-value">@ViewBag.ActiveRooms</div><div class="stat-label">Active Rooms</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-shield-exclamation"></i></div>
+            <div><div class="stat-value">@ViewBag.PendingKyc</div><div class="stat-label">Pending KYC</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon cyan"><i class="bi bi-file-earmark-person"></i></div>
+            <div><div class="stat-value">@ViewBag.TotalApps</div><div class="stat-label">Applications</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-title"><i class="bi bi-graph-up me-2 text-primary"></i>User Registrations (Last 6 Months)</div>
+            <canvas id="regChart" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-title"><i class="bi bi-pie-chart me-2 text-warning"></i>Application Status</div>
+            <canvas id="appChart" height="180"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3">
+    <div class="col-md-3">
+        <a asp-controller="Admin" asp-action="Kyc" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-shield-check fs-2 text-warning"></i>
+            <div class="fw-600 mt-1">Review KYC</div>
+            <div class="text-muted small">@ViewBag.PendingKyc pending</div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="Admin" asp-action="Rooms" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-building-check fs-2 text-primary"></i>
+            <div class="fw-600 mt-1">Approve Rooms</div>
+            <div class="text-muted small">@ViewBag.PendingRooms pending</div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="Admin" asp-action="Users" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-people fs-2 text-success"></i>
+            <div class="fw-600 mt-1">Manage Users</div>
+            <div class="text-muted small">All accounts</div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="Admin" asp-action="LoginHistory" class="brf-card d-block p-3 text-decoration-none text-center">
+            <i class="bi bi-clock-history fs-2 text-info"></i>
+            <div class="fw-600 mt-1">Login History</div>
+            <div class="text-muted small">Audit log</div>
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+@{
+    var regData = ViewBag.RegData as IEnumerable<dynamic> ?? new List<dynamic>();
+    var labels  = string.Join(",", regData.Select(d => $"'{d.Year}/{d.Month:D2}'"));
+    var values  = string.Join(",", regData.Select(d => d.Count));
+}
+new Chart(document.getElementById('regChart'), {
+    type: 'line',
+    data: {
+        labels: [@Html.Raw(labels)],
+        datasets: [{ label: 'Registrations', data: [@Html.Raw(values)],
+            borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,.1)',
+            tension: .4, fill: true, pointRadius: 4 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+});
+new Chart(document.getElementById('appChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Pending','Approved','Rejected'],
+        datasets: [{ data: [@ViewBag.AppPending, @ViewBag.AppApproved, @ViewBag.AppRejected],
+            backgroundColor: ['#D97706','#16A34A','#DC2626'], borderWidth: 2 }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+}

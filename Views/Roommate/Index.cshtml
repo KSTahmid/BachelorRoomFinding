@@ -1,0 +1,109 @@
+@model List<RoommateAd>
+@using BachelorRoomFinding.Services
+@{
+    ViewData["Title"] = "Find Roommate";
+    var myPrefs = ViewBag.MyPrefs as UserPreference;
+    var otherPrefs = ViewBag.OtherPrefs as List<UserPreference> ?? new List<UserPreference>();
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1 class="page-title"><i class="bi bi-people me-2"></i>Find a Roommate</h1>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Post an Ad</a>
+</div>
+
+<div class="row g-4">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="brf-card p-5 text-center">
+                <i class="bi bi-search fs-1 text-muted opacity-25"></i>
+                <h5 class="mt-3">No roommate ads found</h5>
+                <p class="text-muted">Be the first to post an ad in your area!</p>
+            </div>
+        </div>
+    }
+    
+    @foreach (var ad in Model)
+    {
+        var targetPrefs = otherPrefs.FirstOrDefault(p => p.UserId == ad.UserId);
+        int matchScore = (myPrefs != null && targetPrefs != null) ? MatchingService.CalculateCompatibility(myPrefs, targetPrefs) : 50;
+        
+        <div class="col-md-6 col-xl-4">
+            <div class="roommate-card brf-card h-100 overflow-hidden">
+                <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="avatar-sm">@ad.User.UserName[0].ToString().ToUpper()</div>
+                        <div>
+                            <div class="fw-bold small">@ad.User.UserName</div>
+                            <div class="text-muted" style="font-size:.7rem">Posted @ad.CreatedAt.ToString("dd MMM yyyy")</div>
+                        </div>
+                    </div>
+                    @if (myPrefs != null)
+                    {
+                        <div class="text-end">
+                            <div class="fw-bold text-primary" style="font-size:.8rem">@matchScore% Match</div>
+                            <div class="progress" style="height: 4px; width: 60px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: @matchScore%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="p-3">
+                    <div class="mb-2">
+                        <span class="badge bg-soft-primary text-primary small"><i class="bi bi-geo-alt me-1"></i>@ad.PreferredAreas</span>
+                        <span class="badge bg-soft-success text-success small"><i class="bi bi-cash-stack me-1"></i>৳@ad.MaxRentPerPerson/mo</span>
+                    </div>
+                    <p class="small text-muted mb-3" style="height: 4.5rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                        @ad.Description
+                    </p>
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <span class="badge bg-light text-dark border small">Move-in: @ad.MoveInDate.ToString("MMM yyyy")</span>
+                        <span class="badge bg-light text-dark border small">Need: @ad.NumberOfRoommatesNeeded</span>
+                    </div>
+                    
+                    @if (targetPrefs != null)
+                    {
+                        <div class="lifestyle-mini d-flex gap-2 mb-3">
+                            <i class="bi bi-info-circle text-muted" title="Cleanliness: @targetPrefs.Cleanliness | Smoking: @targetPrefs.Smoking"></i>
+                            <span class="small text-muted">@targetPrefs.Smoking | @targetPrefs.Cleanliness Clean</span>
+                        </div>
+                    }
+                    
+                    <button class="btn btn-outline-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#connectModal_@ad.Id">
+                        <i class="bi bi-chat-dots me-2"></i>Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Modal -->
+        <div class="modal fade" id="connectModal_@ad.Id" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Connect with @ad.User.UserName</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form asp-action="Connect" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="adId" value="@ad.Id" />
+                        <div class="modal-body">
+                            <p class="small text-muted">Introduce yourself and mention why you think you'd be a good roommate match.</p>
+                            <textarea name="message" class="form-control" rows="4" placeholder="Hi, I saw your ad and I'm interested..." required></textarea>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Send Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .bg-soft-primary { background: #e0e7ff; }
+    .bg-soft-success { background: #dcfce7; }
+    .avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: .8rem; }
+</style>

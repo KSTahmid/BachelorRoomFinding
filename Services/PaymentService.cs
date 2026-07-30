@@ -5,17 +5,36 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BachelorRoomFinding.Services
 {
+    /// <summary>
+    /// Service responsible for all payment business logic.
+    /// Handles payment initialization (upsert), completion, and mess board auto-joining after successful rent payment.
+    /// Supports bKash, Nagad, and Bank Transfer methods.
+    /// </summary>
     public class PaymentService : IPaymentService
     {
         private readonly AppDbContext _context;
         private readonly IOtpService _otpService;
 
+        /// <summary>
+        /// Injects the database context and OTP service.
+        /// </summary>
         public PaymentService(AppDbContext context, IOtpService otpService)
         {
             _context = context;
             _otpService = otpService;
         }
 
+        /// <summary>
+        /// Creates or updates a pending payment record for the given rental application.
+        /// Uses upsert logic: if a pending payment already exists for this application, it is updated
+        /// rather than inserting a duplicate (which would violate the unique index constraint).
+        /// </summary>
+        /// <param name="applicationId">The rental application being paid for.</param>
+        /// <param name="userId">The tenant's user ID making the payment.</param>
+        /// <param name="method">Payment method: "bKash", "Nagad", or "BankTransfer".</param>
+        /// <param name="amount">The payment amount in BDT.</param>
+        /// <param name="senderWalletNumber">The tenant's wallet number (optional).</param>
+        /// <returns>The initialized or updated Payment entity.</returns>
         public async Task<Payment> InitializePaymentAsync(int applicationId, int userId, string method, decimal amount, string? senderWalletNumber = null)
         {
             var application = await _context.RentalApplications
@@ -24,23 +43,41 @@ namespace BachelorRoomFinding.Services
                 .FirstOrDefaultAsync(a => a.Id == applicationId);
             if (application == null) throw new ArgumentException("Application not found");
 
-            var payment = new Payment
+            var payment = await _context.Payments.FirstOrDefaultAsync(p => p.ApplicationId == applicationId);
+            
+            if (payment != null)
             {
-                ApplicationId = applicationId,
-                UserId = userId,
-                OwnerId = application.Room.OwnerId,
-                RoomId = application.RoomId,
-                Method = method,
-                Amount = amount,
-                SenderWalletNumber = senderWalletNumber,
-                RecipientWalletNumber = method == "Nagad"
+                if (payment.Status == "Completed") return payment;
+                
+                payment.Method = method;
+                payment.Amount = amount;
+                payment.SenderWalletNumber = senderWalletNumber;
+                payment.RecipientWalletNumber = method == "Nagad"
                     ? application.Room.Owner.NagadNumber ?? application.Room.Owner.PhoneNumber
-                    : application.Room.Owner.BkashNumber ?? application.Room.Owner.PhoneNumber,
-                Status = "Pending",
-                CreatedAt = DateTime.Now
-            };
+                    : application.Room.Owner.BkashNumber ?? application.Room.Owner.PhoneNumber;
+                payment.Status = "Pending";
+                payment.CreatedAt = DateTime.Now;
+            }
+            else
+            {
+                payment = new Payment
+                {
+                    ApplicationId = applicationId,
+                    UserId = userId,
+                    OwnerId = application.Room.OwnerId,
+                    RoomId = application.RoomId,
+                    Method = method,
+                    Amount = amount,
+                    SenderWalletNumber = senderWalletNumber,
+                    RecipientWalletNumber = method == "Nagad"
+                        ? application.Room.Owner.NagadNumber ?? application.Room.Owner.PhoneNumber
+                        : application.Room.Owner.BkashNumber ?? application.Room.Owner.PhoneNumber,
+                    Status = "Pending",
+                    CreatedAt = DateTime.Now
+                };
+                _context.Payments.Add(payment);
+            }
 
-            _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
             return payment;
         }

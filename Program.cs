@@ -6,6 +6,9 @@ using BachelorRoomFinding.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
+// ==========================================
+// Bachelor Room Finding Startup Configuration
+// ==========================================
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
 

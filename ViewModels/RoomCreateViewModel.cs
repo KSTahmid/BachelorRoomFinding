@@ -22,8 +22,29 @@ namespace BachelorRoomFinding.ViewModels
         [Required]
         public string Thana { get; set; } = string.Empty;
 
-        [Required, Range(500, 1000000)]
-        public decimal Rent { get; set; }
+        [Required, Range(0, 1000000)]
+        public decimal MonthlyRent { get; set; }
+
+        [Range(0, 100000)]
+        public decimal SeatRent { get; set; }
+
+        [Range(0, 100000)]
+        public decimal ElectricityBill { get; set; }
+
+        [Range(0, 100000)]
+        public decimal WiFiBill { get; set; }
+
+        [Range(0, 100000)]
+        public decimal GasBill { get; set; }
+
+        [Range(0, 100000)]
+        public decimal WaterBill { get; set; }
+
+        [Range(0, 100000)]
+        public decimal ServiceCharge { get; set; }
+
+        [Range(0, 100000)]
+        public decimal MealCost { get; set; }
 
         [Range(0, 1000000)]
         public decimal SecurityDeposit { get; set; }
@@ -34,19 +55,21 @@ namespace BachelorRoomFinding.ViewModels
         [Range(1, 20)]
         public int BedroomCount { get; set; } = 1;
 
-        public RoomType RoomType { get; set; } = RoomType.Single;
+        public RoomType RoomType { get; set; } = RoomType.MaleMess;
         public DateTime? AvailableFrom { get; set; }
 
         // Facilities - checklist
         public List<string> SelectedFacilities { get; set; } = new();
 
         // Rules
-        public bool NoSmoking { get; set; }
-        public bool NoPets { get; set; }
-        public string GenderRule { get; set; } = "Any"; // Male / Female / Any
+        public bool SmokingAllowed { get; set; }
+        public bool GuestAllowed { get; set; }
+        public string CurfewTiming { get; set; } = string.Empty;
+        public bool BachelorOnly { get; set; }
+        public bool FamilyRestricted { get; set; }
 
-        // Photos
-        public List<IFormFile>? PhotoFiles { get; set; }
+        // Media (Photos/Videos)
+        public List<IFormFile>? MediaFiles { get; set; }
 
         // For edit
         public int OwnerId { get; set; }

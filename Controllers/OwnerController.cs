@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BachelorRoomFinding.Controllers
 {
     [RequireRole("Owner")]
+    [RequireApproval]
     public class OwnerController : Controller
     {
         private readonly AppDbContext _context;
@@ -67,7 +68,7 @@ namespace BachelorRoomFinding.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> PostRoom(RoomCreateViewModel vm)
         {
-            ModelState.Remove("PhotoFiles");
+            ModelState.Remove("MediaFiles");
             if (!ModelState.IsValid) return View(vm);
 
             try
@@ -80,7 +81,14 @@ namespace BachelorRoomFinding.Controllers
                     Address         = vm.Address,
                     District        = vm.District,
                     Thana           = vm.Thana,
-                    Rent            = vm.Rent,
+                    MonthlyRent     = vm.MonthlyRent,
+                    SeatRent        = vm.SeatRent,
+                    ElectricityBill = vm.ElectricityBill,
+                    WiFiBill        = vm.WiFiBill,
+                    GasBill         = vm.GasBill,
+                    WaterBill       = vm.WaterBill,
+                    ServiceCharge   = vm.ServiceCharge,
+                    MealCost        = vm.MealCost,
                     SecurityDeposit = vm.SecurityDeposit,
                     Advance         = vm.Advance,
                     BedroomCount    = vm.BedroomCount,
@@ -98,16 +106,17 @@ namespace BachelorRoomFinding.Controllers
                 foreach (var f in vm.SelectedFacilities)
                     _context.RoomFacilities.Add(new RoomFacility { RoomId = room.Id, FacilityName = f });
 
-                // Photos
-                if (vm.PhotoFiles?.Any() == true)
+                // Media (Photos & Videos)
+                if (vm.MediaFiles?.Any() == true)
                 {
                     bool first = true;
-                    foreach (var file in vm.PhotoFiles)
+                    foreach (var file in vm.MediaFiles)
                     {
                         var path = await _fileSvc.UploadAsync(file, "rooms", ownerId);
                         if (path != null)
                         {
-                            _context.RoomPhotos.Add(new RoomPhoto { RoomId = room.Id, PhotoPath = path, IsPrimary = first });
+                            bool isVideo = file.ContentType.StartsWith("video/");
+                            _context.RoomPhotos.Add(new RoomPhoto { RoomId = room.Id, PhotoPath = path, IsPrimary = first, IsVideo = isVideo });
                             first = false;
                         }
                     }
@@ -123,6 +132,125 @@ namespace BachelorRoomFinding.Controllers
                 return View(vm);
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var room = await _roomRepo.GetByIdAsync(id);
+            if (room == null || room.OwnerId != OwnerId) return NotFound();
+            var vm = MapToViewModel(room);
+            return View(vm);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(RoomCreateViewModel vm)
+        {
+            if (!ModelState.IsValid) return View(vm);
+
+            try
+            {
+                var room = await _roomRepo.GetByIdAsync(vm.Id);
+                if (room == null || room.OwnerId != OwnerId) return NotFound();
+
+                var ctx = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+
+                // Prevent owner from maliciously changing owner or status
+                vm.OwnerId = OwnerId;
+                vm.Status = room.Status;
+
+                UpdateRoomFromVm(room, vm);
+                
+                // Update facilities
+                var existingFacilities = ctx.RoomFacilities.Where(f => f.RoomId == room.Id);
+                ctx.RoomFacilities.RemoveRange(existingFacilities);
+                foreach (var f in vm.SelectedFacilities)
+                    ctx.RoomFacilities.Add(new RoomFacility { RoomId = room.Id, FacilityName = f });
+
+                // Update photos if provided
+                if (vm.MediaFiles?.Any() == true)
+                {
+                    var existingPhotos = ctx.RoomPhotos.Where(p => p.RoomId == room.Id);
+                    ctx.RoomPhotos.RemoveRange(existingPhotos);
+                    
+                    bool first = true;
+                    foreach (var file in vm.MediaFiles)
+                    {
+                        var path = await _fileSvc.UploadAsync(file, "rooms", room.OwnerId);
+                        if (path != null)
+                        {
+                            bool isVideo = file.ContentType.StartsWith("video/");
+                            ctx.RoomPhotos.Add(new RoomPhoto { RoomId = room.Id, PhotoPath = path, IsPrimary = first, IsVideo = isVideo });
+                            first = false;
+                        }
+                    }
+                }
+                
+                await ctx.SaveChangesAsync();
+                await _roomRepo.UpdateAsync(room);
+
+                TempData["Success"] = "Room updated!";
+                return RedirectToAction(nameof(MyRooms));
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(vm);
+            }
+        }
+
+        private static void UpdateRoomFromVm(Room room, RoomCreateViewModel vm)
+        {
+            room.Title           = vm.Title;
+            room.Description     = vm.Description;
+            room.Address         = vm.Address;
+            room.District        = vm.District;
+            room.Thana           = vm.Thana;
+            room.MonthlyRent     = vm.MonthlyRent;
+            room.SeatRent        = vm.SeatRent;
+            room.ElectricityBill = vm.ElectricityBill;
+            room.WiFiBill        = vm.WiFiBill;
+            room.GasBill         = vm.GasBill;
+            room.WaterBill       = vm.WaterBill;
+            room.ServiceCharge   = vm.ServiceCharge;
+            room.MealCost        = vm.MealCost;
+            room.SecurityDeposit = vm.SecurityDeposit;
+            room.Advance         = vm.Advance;
+            room.BedroomCount    = vm.BedroomCount;
+            room.RoomType        = vm.RoomType;
+            room.AvailableFrom   = vm.AvailableFrom;
+            room.Rules           = BuildRules(vm);
+        }
+
+        private static RoomCreateViewModel MapToViewModel(Room room) => new()
+        {
+            Id              = room.Id,
+            Title           = room.Title,
+            Description     = room.Description,
+            Address         = room.Address,
+            District        = room.District,
+            Thana           = room.Thana,
+            MonthlyRent     = room.MonthlyRent,
+            SeatRent        = room.SeatRent,
+            ElectricityBill = room.ElectricityBill,
+            WiFiBill        = room.WiFiBill,
+            GasBill         = room.GasBill,
+            WaterBill       = room.WaterBill,
+            ServiceCharge   = room.ServiceCharge,
+            MealCost        = room.MealCost,
+            SecurityDeposit = room.SecurityDeposit,
+            Advance         = room.Advance,
+            BedroomCount    = room.BedroomCount,
+            RoomType        = room.RoomType,
+            AvailableFrom   = room.AvailableFrom,
+            OwnerId         = room.OwnerId,
+            Status          = room.Status,
+            SelectedFacilities = room.Facilities?.Select(f => f.FacilityName).ToList() ?? new List<string>(),
+            SmokingAllowed  = room.Rules?.Contains("Smoking Allowed") ?? false,
+            GuestAllowed    = room.Rules?.Contains("Guest Allowed") ?? false,
+            BachelorOnly    = room.Rules?.Contains("Bachelor Only") ?? false,
+            FamilyRestricted= room.Rules?.Contains("Family Restricted") ?? false,
+            CurfewTiming    = room.Rules?.Split('|').FirstOrDefault(r => r.StartsWith("Curfew: "))?.Replace("Curfew: ", "") ?? ""
+        };
 
         // ── Applications ──────────────────────────────────────────────
         public async Task<IActionResult> Applications(int page = 1)
@@ -186,13 +314,31 @@ namespace BachelorRoomFinding.Controllers
             if (app == null || app.Room.OwnerId != OwnerId) return Forbid();
             if (app.Payment == null) return NotFound("No payment found.");
 
-            app.Payment.Status = PaymentStatus.Confirmed;
+            app.Payment.Status = "Completed";
             app.Payment.ConfirmedByUserId = OwnerId;
             
             // Mark room as rented? Or just application as settled?
             // Usually we mark the room as occupied once payment is confirmed.
             app.Room.IsAvailable = false;
             app.Room.Status = RoomStatus.Rented;
+
+            // Auto-join tenant to room's MessBoard community
+            var messGroup = await _context.MessGroups.FirstOrDefaultAsync(g => g.RoomId == app.RoomId);
+            if (messGroup != null)
+            {
+                var alreadyMember = await _context.MessMembers.AnyAsync(m => m.MessGroupId == messGroup.Id && m.UserId == app.ApplicantId);
+                if (!alreadyMember)
+                {
+                    _context.MessMembers.Add(new MessMember
+                    {
+                        MessGroupId = messGroup.Id,
+                        UserId = app.ApplicantId,
+                        Role = MessRole.Tenant,
+                        IsManager = false,
+                        JoinedAt = DateTime.Now
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
 
@@ -260,12 +406,114 @@ namespace BachelorRoomFinding.Controllers
             return RedirectToAction(nameof(Dashboard));
         }
 
+        // ── Roommate Vacancies ───────────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> PostRoommateAd(int roomId)
+        {
+            var room = await _roomRepo.GetByIdAsync(roomId);
+            if (room == null || room.OwnerId != OwnerId) return Forbid();
+
+            var ad = new RoommateAd
+            {
+                RoomId = roomId,
+                PreferredAreas = $"{room.Thana}, {room.District}",
+                MaxRentPerPerson = room.SeatRent > 0 ? room.SeatRent : room.MonthlyRent,
+                AdvancePaymentAmount = room.Advance,
+                Description = $"Looking for a roommate for our {room.RoomType} at {room.Address}."
+            };
+            return View(ad);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> PostRoommateAd(RoommateAd ad)
+        {
+            var room = await _roomRepo.GetByIdAsync(ad.RoomId.GetValueOrDefault());
+            if (room == null || room.OwnerId != OwnerId) return Forbid();
+
+            ModelState.Remove("User");
+            ModelState.Remove("Room");
+            if (!ModelState.IsValid) return View(ad);
+
+            ad.UserId = OwnerId;
+            ad.CreatedAt = DateTime.Now;
+            ad.Status = RoommateAdStatus.Active;
+
+            _context.RoommateAds.Add(ad);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Roommate vacancy posted!";
+            return RedirectToAction(nameof(MyRooms));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> RoommateRequests(int adId)
+        {
+            var ad = await _context.RoommateAds
+                .Include(a => a.Room)
+                .Include(a => a.ConnectionRequests)
+                .ThenInclude(r => r.Sender)
+                .FirstOrDefaultAsync(a => a.Id == adId && a.UserId == OwnerId);
+            
+            if (ad == null) return NotFound();
+            return View(ad);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptRoommate(int requestId)
+        {
+            var req = await _context.RoommateConnectionRequests
+                .Include(r => r.RoommateAd)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (req == null || req.RoommateAd.UserId != OwnerId) return Forbid();
+
+            req.Status = ConnectionRequestStatus.Accepted;
+            req.RespondedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            await _notifSvc.CreateAsync(req.SenderUserId, "Roommate Request Accepted", 
+                "Your request was accepted. You can now message this profile.", NotificationType.ApplicationStatus);
+            
+            TempData["Success"] = "Roommate accepted. Waiting for advance payment.";
+            return RedirectToAction(nameof(RoommateRequests), new { adId = req.RoommateAdId });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmRoommatePayment(int requestId)
+        {
+            var req = await _context.RoommateConnectionRequests
+                .Include(r => r.RoommateAd)
+                .ThenInclude(a => a.Room)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (req == null || req.RoommateAd.UserId != OwnerId) return Forbid();
+
+            req.PaymentStatus = "Completed";
+            req.RoommateAd.Status = RoommateAdStatus.Closed;
+            
+            if (req.RoommateAd.Room != null)
+            {
+                req.RoommateAd.Room.IsAvailable = false;
+                req.RoommateAd.Room.Status = RoomStatus.Rented;
+            }
+
+            await _context.SaveChangesAsync();
+
+            await _notifSvc.CreateAsync(req.SenderUserId, "Payment Confirmed", 
+                "Your payment is confirmed. Welcome to your new room!", NotificationType.PaymentConfirmed);
+            
+            TempData["Success"] = "Payment confirmed and roommate added!";
+            return RedirectToAction(nameof(MyRooms));
+        }
+
         private static string BuildRules(RoomCreateViewModel vm)
         {
             var r = new List<string>();
-            if (vm.NoSmoking) r.Add("No Smoking");
-            if (vm.NoPets)    r.Add("No Pets");
-            if (vm.GenderRule != "Any") r.Add($"{vm.GenderRule} Only");
+            if (vm.SmokingAllowed) r.Add("Smoking Allowed"); else r.Add("No Smoking");
+            if (vm.GuestAllowed) r.Add("Guest Allowed"); else r.Add("No Guests");
+            if (vm.BachelorOnly) r.Add("Bachelor Only");
+            if (vm.FamilyRestricted) r.Add("Family Restricted");
+            if (!string.IsNullOrWhiteSpace(vm.CurfewTiming)) r.Add($"Curfew: {vm.CurfewTiming}");
             return string.Join("|", r);
         }
     }

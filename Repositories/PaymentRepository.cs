@@ -15,7 +15,7 @@ namespace BachelorRoomFinding.Repositories
         {
             var query = _context.Payments.Include(p => p.Application).ThenInclude(a => a.Room).AsQueryable();
             var total = await query.CountAsync();
-            var items = await query.OrderByDescending(p => p.PaidAt)
+            var items = await query.OrderByDescending(p => p.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             return new PagedResult<Payment> { Items = items, PageNumber = pageNumber, PageSize = pageSize, TotalCount = total };
         }

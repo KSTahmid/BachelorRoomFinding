@@ -60,20 +60,23 @@ namespace BachelorRoomFinding.Controllers
     [RequireLogin]
     public class MessageController : Controller
     {
-        private readonly BachelorRoomFinding.Repositories.MessageRepository _msgRepo;
+        private readonly BachelorRoomFinding.Interfaces.IMessageRepository _msgRepo;
         private readonly BachelorRoomFinding.Interfaces.IRepository<BachelorRoomFinding.Entities.User> _userRepo;
         private readonly BachelorRoomFinding.Services.NotificationService _notifSvc;
+        private readonly BachelorRoomFinding.Services.EmailService _emailSvc;
         private readonly AppDbContext _context;
 
         public MessageController(
-            BachelorRoomFinding.Repositories.MessageRepository msgRepo,
+            BachelorRoomFinding.Interfaces.IMessageRepository msgRepo,
             BachelorRoomFinding.Interfaces.IRepository<BachelorRoomFinding.Entities.User> userRepo,
             BachelorRoomFinding.Services.NotificationService notifSvc,
+            BachelorRoomFinding.Services.EmailService emailSvc,
             AppDbContext context)
         {
             _msgRepo  = msgRepo;
             _userRepo = userRepo;
             _notifSvc = notifSvc;
+            _emailSvc = emailSvc;
             _context  = context;
         }
 
@@ -146,6 +149,16 @@ namespace BachelorRoomFinding.Controllers
                 $"New message from {senderName}",
                 content.Length > 80 ? content[..80] + "..." : content,
                 NotificationType.NewMessage);
+
+            // Send real email notification to the receiver
+            var receiver = await _userRepo.GetByIdAsync(receiverId);
+            if (receiver != null && !string.IsNullOrEmpty(receiver.Email))
+            {
+                await _emailSvc.SendAsync(
+                    receiver.Email,
+                    $"New message from {senderName} - MessBasha",
+                    $"Hi {receiver.UserName},<br><br>You have received a new message from <strong>{senderName}</strong>:<br><br>\"{content.Trim()}\"<br><br>Please log in to the portal to reply.");
+            }
 
             return RedirectToAction(nameof(Conversation), new { userId = receiverId });
         }

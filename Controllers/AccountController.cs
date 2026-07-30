@@ -13,14 +13,14 @@ namespace BachelorRoomFinding.Controllers
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<Role> _roleRepo;
         private readonly IRepository<LoginHistory> _loginHistRepo;
-        private readonly FakeEmailService _emailSvc;
+        private readonly EmailService _emailSvc;
         private readonly AppDbContext _context;
 
         public AccountController(
             IRepository<User> userRepo,
             IRepository<Role> roleRepo,
             IRepository<LoginHistory> loginHistRepo,
-            FakeEmailService emailSvc,
+            EmailService emailSvc,
             AppDbContext context)
         {
             _userRepo = userRepo;
@@ -208,6 +208,9 @@ namespace BachelorRoomFinding.Controllers
 
         // ── Access Denied ─────────────────────────────────────────────
         public IActionResult AccessDenied() => View();
+
+        // ── Pending Approval ─────────────────────────────────────────
+        public IActionResult PendingApproval() => View();
 
         // ── Logout ────────────────────────────────────────────────────
         public IActionResult Logout()

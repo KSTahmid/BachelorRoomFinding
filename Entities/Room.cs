@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BachelorRoomFinding.Entities
 {
-    public enum RoomType { Single, Double, Shared, Flat }
+    public enum RoomType { MaleMess, FemaleHostel, SharedSeat, SingleRoom, Sublet, BachelorFlat }
     public enum RoomStatus { Draft, PendingApproval, Active, Rented, Inactive }
 
     public class Room
@@ -20,7 +20,28 @@ namespace BachelorRoomFinding.Entities
         public string Thana { get; set; } = string.Empty;
 
         [Column(TypeName = "decimal(18,2)")]
-        public decimal Rent { get; set; }
+        public decimal MonthlyRent { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal SeatRent { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ElectricityBill { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal WiFiBill { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal GasBill { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal WaterBill { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ServiceCharge { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal MealCost { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal SecurityDeposit { get; set; }
@@ -29,7 +50,7 @@ namespace BachelorRoomFinding.Entities
         public decimal Advance { get; set; }
 
         public int BedroomCount { get; set; }
-        public RoomType RoomType { get; set; } = RoomType.Single;
+        public RoomType RoomType { get; set; } = RoomType.MaleMess;
         public RoomStatus Status { get; set; } = RoomStatus.Draft;
         public bool IsAvailable { get; set; } = true;
         public DateTime PostedDate { get; set; } = DateTime.Now;

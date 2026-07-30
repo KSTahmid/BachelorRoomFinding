@@ -23,6 +23,12 @@ namespace BachelorRoomFinding.Entities
         
         public int NumberOfRoommatesNeeded { get; set; } = 1;
         
+        public int? RoomId { get; set; }
+        
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AdvancePaymentAmount { get; set; }
+        
+        
         [Required]
         public string Description { get; set; } = string.Empty;
         
@@ -35,5 +41,9 @@ namespace BachelorRoomFinding.Entities
 
         [ValidateNever]
         public ICollection<RoommateConnectionRequest> ConnectionRequests { get; set; } = new List<RoommateConnectionRequest>();
+
+        [ValidateNever]
+        [ForeignKey("RoomId")]
+        public virtual Room? Room { get; set; }
     }
 }

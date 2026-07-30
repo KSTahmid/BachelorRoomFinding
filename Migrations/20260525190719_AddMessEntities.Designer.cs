@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BachelorRoomFinding.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260512165803_FullPlatformV2")]
-    partial class FullPlatformV2
+    [Migration("20260525190719_AddMessEntities")]
+    partial class AddMessEntities
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -101,6 +101,135 @@ namespace BachelorRoomFinding.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("LoginHistories");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessExpense", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AddedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MessGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddedByUserId");
+
+                    b.HasIndex("MessGroupId");
+
+                    b.ToTable("MessExpenses");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessExpenseShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MessExpenseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessExpenseId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MessExpenseShares");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ManagerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("MessGroups");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsManager")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MessGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessGroupId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MessMembers");
                 });
 
             modelBuilder.Entity("BachelorRoomFinding.Entities.Message", b =>
@@ -209,7 +338,7 @@ namespace BachelorRoomFinding.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("TransactionId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
@@ -217,6 +346,10 @@ namespace BachelorRoomFinding.Migrations
                         .IsUnique();
 
                     b.HasIndex("ConfirmedByUserId");
+
+                    b.HasIndex("TransactionId")
+                        .IsUnique()
+                        .HasFilter("[TransactionId] IS NOT NULL");
 
                     b.ToTable("Payments");
                 });
@@ -262,6 +395,51 @@ namespace BachelorRoomFinding.Migrations
                     b.ToTable("RentalApplications");
                 });
 
+            modelBuilder.Entity("BachelorRoomFinding.Entities.Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReporterUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetRoomId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("TargetRoomId");
+
+                    b.HasIndex("TargetUserId");
+
+                    b.ToTable("Reports");
+                });
+
             modelBuilder.Entity("BachelorRoomFinding.Entities.Review", b =>
                 {
                     b.Property<int>("Id")
@@ -276,8 +454,14 @@ namespace BachelorRoomFinding.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsVerifiedTenantReview")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Rating")
                         .HasColumnType("int");
+
+                    b.Property<string>("ReviewTags")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ReviewerId")
                         .HasColumnType("int");
@@ -343,6 +527,12 @@ namespace BachelorRoomFinding.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal>("ElectricityBill")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("GasBill")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("bit");
 
@@ -352,14 +542,17 @@ namespace BachelorRoomFinding.Migrations
                     b.Property<double?>("Longitude")
                         .HasColumnType("float");
 
+                    b.Property<decimal>("MealCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MonthlyRent")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("OwnerId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("PostedDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Rent")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("RoomType")
                         .HasColumnType("int");
@@ -367,7 +560,16 @@ namespace BachelorRoomFinding.Migrations
                     b.Property<string>("Rules")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("SafetyScore")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SeatRent")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("SecurityDeposit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ServiceCharge")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Status")
@@ -383,6 +585,12 @@ namespace BachelorRoomFinding.Migrations
 
                     b.Property<int>("ViewCount")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("WaterBill")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("WiFiBill")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -422,6 +630,9 @@ namespace BachelorRoomFinding.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsVideo")
                         .HasColumnType("bit");
 
                     b.Property<string>("PhotoPath")
@@ -468,6 +679,98 @@ namespace BachelorRoomFinding.Migrations
                     b.HasIndex("ViewerUserId");
 
                     b.ToTable("RoomViews");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.RoommateAd", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AdvancePaymentAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("MaxRentPerPerson")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("MoveInDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("NumberOfRoommatesNeeded")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PreferredAreas")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("RoomId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RoommateAds");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.RoommateConnectionRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentTransactionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RoommateAdId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SenderUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoommateAdId");
+
+                    b.HasIndex("SenderUserId");
+
+                    b.ToTable("RoommateConnectionRequests");
                 });
 
             modelBuilder.Entity("BachelorRoomFinding.Entities.SavedRoom", b =>
@@ -562,6 +865,53 @@ namespace BachelorRoomFinding.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("BachelorRoomFinding.Entities.UserPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Cleanliness")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FoodHabit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GuestPolicy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PetFriendly")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PrayerHabit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SleepSchedule")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Smoking")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserPreferences");
+                });
+
             modelBuilder.Entity("BachelorRoomFinding.Entities.KycDocument", b =>
                 {
                     b.HasOne("BachelorRoomFinding.Entities.User", "ReviewedBy")
@@ -586,6 +936,81 @@ namespace BachelorRoomFinding.Migrations
                         .WithMany("LoginHistories")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessExpense", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.User", "AddedBy")
+                        .WithMany()
+                        .HasForeignKey("AddedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BachelorRoomFinding.Entities.MessGroup", "MessGroup")
+                        .WithMany("Expenses")
+                        .HasForeignKey("MessGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AddedBy");
+
+                    b.Navigation("MessGroup");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessExpenseShare", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.MessExpense", "MessExpense")
+                        .WithMany("Shares")
+                        .HasForeignKey("MessExpenseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BachelorRoomFinding.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MessExpense");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessGroup", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BachelorRoomFinding.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessMember", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.MessGroup", "MessGroup")
+                        .WithMany("Members")
+                        .HasForeignKey("MessGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BachelorRoomFinding.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MessGroup");
 
                     b.Navigation("User");
                 });
@@ -664,6 +1089,31 @@ namespace BachelorRoomFinding.Migrations
                     b.Navigation("Room");
                 });
 
+            modelBuilder.Entity("BachelorRoomFinding.Entities.Report", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BachelorRoomFinding.Entities.Room", "TargetRoom")
+                        .WithMany()
+                        .HasForeignKey("TargetRoomId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BachelorRoomFinding.Entities.User", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Reporter");
+
+                    b.Navigation("TargetRoom");
+
+                    b.Navigation("TargetUser");
+                });
+
             modelBuilder.Entity("BachelorRoomFinding.Entities.Review", b =>
                 {
                     b.HasOne("BachelorRoomFinding.Entities.User", "Reviewer")
@@ -734,6 +1184,42 @@ namespace BachelorRoomFinding.Migrations
                     b.Navigation("ViewerUser");
                 });
 
+            modelBuilder.Entity("BachelorRoomFinding.Entities.RoommateAd", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId");
+
+                    b.HasOne("BachelorRoomFinding.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.RoommateConnectionRequest", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.RoommateAd", "RoommateAd")
+                        .WithMany("ConnectionRequests")
+                        .HasForeignKey("RoommateAdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BachelorRoomFinding.Entities.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RoommateAd");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("BachelorRoomFinding.Entities.SavedRoom", b =>
                 {
                     b.HasOne("BachelorRoomFinding.Entities.Room", "Room")
@@ -764,6 +1250,29 @@ namespace BachelorRoomFinding.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("BachelorRoomFinding.Entities.UserPreference", b =>
+                {
+                    b.HasOne("BachelorRoomFinding.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("BachelorRoomFinding.Entities.UserPreference", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessExpense", b =>
+                {
+                    b.Navigation("Shares");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.MessGroup", b =>
+                {
+                    b.Navigation("Expenses");
+
+                    b.Navigation("Members");
+                });
+
             modelBuilder.Entity("BachelorRoomFinding.Entities.RentalApplication", b =>
                 {
                     b.Navigation("Payment");
@@ -787,6 +1296,11 @@ namespace BachelorRoomFinding.Migrations
                     b.Navigation("SavedByUsers");
 
                     b.Navigation("Views");
+                });
+
+            modelBuilder.Entity("BachelorRoomFinding.Entities.RoommateAd", b =>
+                {
+                    b.Navigation("ConnectionRequests");
                 });
 
             modelBuilder.Entity("BachelorRoomFinding.Entities.User", b =>

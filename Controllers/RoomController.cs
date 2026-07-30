@@ -42,7 +42,7 @@ namespace BachelorRoomFinding.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(RoomCreateViewModel vm)
         {
-            ModelState.Remove("PhotoFiles");
+            ModelState.Remove("MediaFiles");
             ModelState.Remove("Owner");
             if (!ModelState.IsValid) { await PopulateOwners(); return View(vm); }
 
@@ -77,7 +77,6 @@ namespace BachelorRoomFinding.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(RoomCreateViewModel vm)
         {
-            ModelState.Remove("PhotoFiles");
             if (!ModelState.IsValid) { await PopulateOwners(); return View(vm); }
 
             try
@@ -85,8 +84,38 @@ namespace BachelorRoomFinding.Controllers
                 var room = await _roomRepo.GetByIdAsync(vm.Id);
                 if (room == null) return NotFound();
 
+                var ctx = HttpContext.RequestServices.GetRequiredService<Data.AppDbContext>();
+
                 UpdateRoomFromVm(room, vm);
+                
+                // Update facilities
+                var existingFacilities = ctx.RoomFacilities.Where(f => f.RoomId == room.Id);
+                ctx.RoomFacilities.RemoveRange(existingFacilities);
+                foreach (var f in vm.SelectedFacilities)
+                    ctx.RoomFacilities.Add(new RoomFacility { RoomId = room.Id, FacilityName = f });
+
+                // Update photos if provided
+                if (vm.MediaFiles?.Any() == true)
+                {
+                    var existingPhotos = ctx.RoomPhotos.Where(p => p.RoomId == room.Id);
+                    ctx.RoomPhotos.RemoveRange(existingPhotos);
+                    
+                    bool first = true;
+                    foreach (var file in vm.MediaFiles)
+                    {
+                        var path = await _fileSvc.UploadAsync(file, "rooms", room.OwnerId);
+                        if (path != null)
+                        {
+                            bool isVideo = file.ContentType.StartsWith("video/");
+                            ctx.RoomPhotos.Add(new RoomPhoto { RoomId = room.Id, PhotoPath = path, IsPrimary = first, IsVideo = isVideo });
+                            first = false;
+                        }
+                    }
+                }
+                
+                await ctx.SaveChangesAsync();
                 await _roomRepo.UpdateAsync(room);
+
                 TempData["Success"] = "Room updated!";
                 return RedirectToAction(nameof(Index));
             }
@@ -143,7 +172,14 @@ namespace BachelorRoomFinding.Controllers
             Address         = vm.Address,
             District        = vm.District,
             Thana           = vm.Thana,
-            Rent            = vm.Rent,
+            MonthlyRent     = vm.MonthlyRent,
+            SeatRent        = vm.SeatRent,
+            ElectricityBill = vm.ElectricityBill,
+            WiFiBill        = vm.WiFiBill,
+            GasBill         = vm.GasBill,
+            WaterBill       = vm.WaterBill,
+            ServiceCharge   = vm.ServiceCharge,
+            MealCost        = vm.MealCost,
             SecurityDeposit = vm.SecurityDeposit,
             Advance         = vm.Advance,
             BedroomCount    = vm.BedroomCount,
@@ -161,7 +197,14 @@ namespace BachelorRoomFinding.Controllers
             room.Address         = vm.Address;
             room.District        = vm.District;
             room.Thana           = vm.Thana;
-            room.Rent            = vm.Rent;
+            room.MonthlyRent     = vm.MonthlyRent;
+            room.SeatRent        = vm.SeatRent;
+            room.ElectricityBill = vm.ElectricityBill;
+            room.WiFiBill        = vm.WiFiBill;
+            room.GasBill         = vm.GasBill;
+            room.WaterBill       = vm.WaterBill;
+            room.ServiceCharge   = vm.ServiceCharge;
+            room.MealCost        = vm.MealCost;
             room.SecurityDeposit = vm.SecurityDeposit;
             room.Advance         = vm.Advance;
             room.BedroomCount    = vm.BedroomCount;
@@ -175,9 +218,11 @@ namespace BachelorRoomFinding.Controllers
         private static string BuildRules(RoomCreateViewModel vm)
         {
             var rules = new List<string>();
-            if (vm.NoSmoking) rules.Add("No Smoking");
-            if (vm.NoPets)    rules.Add("No Pets");
-            if (vm.GenderRule != "Any") rules.Add($"{vm.GenderRule} Only");
+            if (vm.SmokingAllowed) rules.Add("Smoking Allowed"); else rules.Add("No Smoking");
+            if (vm.GuestAllowed) rules.Add("Guest Allowed"); else rules.Add("No Guests");
+            if (vm.BachelorOnly) rules.Add("Bachelor Only");
+            if (vm.FamilyRestricted) rules.Add("Family Restricted");
+            if (!string.IsNullOrWhiteSpace(vm.CurfewTiming)) rules.Add($"Curfew: {vm.CurfewTiming}");
             return string.Join("|", rules);
         }
 
@@ -189,7 +234,14 @@ namespace BachelorRoomFinding.Controllers
             Address         = room.Address,
             District        = room.District,
             Thana           = room.Thana,
-            Rent            = room.Rent,
+            MonthlyRent     = room.MonthlyRent,
+            SeatRent        = room.SeatRent,
+            ElectricityBill = room.ElectricityBill,
+            WiFiBill        = room.WiFiBill,
+            GasBill         = room.GasBill,
+            WaterBill       = room.WaterBill,
+            ServiceCharge   = room.ServiceCharge,
+            MealCost        = room.MealCost,
             SecurityDeposit = room.SecurityDeposit,
             Advance         = room.Advance,
             BedroomCount    = room.BedroomCount,
@@ -198,10 +250,11 @@ namespace BachelorRoomFinding.Controllers
             OwnerId         = room.OwnerId,
             Status          = room.Status,
             SelectedFacilities = room.Facilities.Select(f => f.FacilityName).ToList(),
-            NoSmoking       = room.Rules?.Contains("No Smoking") ?? false,
-            NoPets          = room.Rules?.Contains("No Pets")    ?? false,
-            GenderRule      = room.Rules?.Contains("Female Only") == true ? "Female"
-                            : room.Rules?.Contains("Male Only")   == true ? "Male" : "Any"
+            SmokingAllowed  = room.Rules?.Contains("Smoking Allowed") ?? false,
+            GuestAllowed    = room.Rules?.Contains("Guest Allowed") ?? false,
+            BachelorOnly    = room.Rules?.Contains("Bachelor Only") ?? false,
+            FamilyRestricted= room.Rules?.Contains("Family Restricted") ?? false,
+            CurfewTiming    = room.Rules?.Split('|').FirstOrDefault(r => r.StartsWith("Curfew: "))?.Replace("Curfew: ", "") ?? ""
         };
 
         private async Task SaveFacilitiesAndPhotos(int roomId, RoomCreateViewModel vm, int ownerId)
@@ -210,15 +263,16 @@ namespace BachelorRoomFinding.Controllers
             foreach (var f in vm.SelectedFacilities)
                 ctx.RoomFacilities.Add(new RoomFacility { RoomId = roomId, FacilityName = f });
 
-            if (vm.PhotoFiles?.Any() == true)
+            if (vm.MediaFiles?.Any() == true)
             {
                 bool first = true;
-                foreach (var file in vm.PhotoFiles)
+                foreach (var file in vm.MediaFiles)
                 {
                     var path = await _fileSvc.UploadAsync(file, "rooms", ownerId);
                     if (path != null)
                     {
-                        ctx.RoomPhotos.Add(new RoomPhoto { RoomId = roomId, PhotoPath = path, IsPrimary = first });
+                        bool isVideo = file.ContentType.StartsWith("video/");
+                        ctx.RoomPhotos.Add(new RoomPhoto { RoomId = roomId, PhotoPath = path, IsPrimary = first, IsVideo = isVideo });
                         first = false;
                     }
                 }

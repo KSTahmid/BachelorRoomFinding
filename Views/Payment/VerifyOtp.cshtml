@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = ViewBag.Method == "bKash" || ViewBag.Method == "Nagad" ? "Verify Gateway Payment" : "Verify Payment OTP";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4 text-primary">
+                        @if (ViewBag.Method == "bKash" || ViewBag.Method == "Nagad")
+                        {
+                            <i class="bi bi-wallet2" style="font-size: 3rem;"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-shield-lock-fill" style="font-size: 3rem;"></i>
+                        }
+                    </div>
+                    <h3 class="fw-bold mb-3">
+                        @(ViewBag.Method == "bKash" || ViewBag.Method == "Nagad" ? "Confirm " + ViewBag.Method + " Transaction" : "OTP Verification")
+                    </h3>
+                    <p class="text-muted mb-4">
+                        @if (ViewBag.Method == "bKash" || ViewBag.Method == "Nagad")
+                        {
+                            <span>Please enter the Transaction ID of your <strong>@ViewBag.Method</strong> payment to confirm your room booking.</span>
+                        }
+                        else
+                        {
+                            <span>We've sent a 6-digit OTP to your registered phone number ending in <strong>@ViewBag.Phone.Substring(ViewBag.Phone.Length - 4)</strong>. <br/>
+                            <em>(Check the console output for the simulated OTP code)</em></span>
+                        }
+                    </p>
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+                    }
+
+                    <form asp-action="VerifyOtpConfirm" method="post">
+                        <input type="hidden" name="paymentId" value="@ViewBag.PaymentId" />
+                        <input type="hidden" name="phone" value="@ViewBag.Phone" />
+
+                        <div class="mb-3 text-start">
+                            <label class="form-label fw-bold">Transaction ID</label>
+                            <input type="text" name="transactionId" class="form-control form-control-lg" placeholder="e.g. TRX123456789" required />
+                        </div>
+
+                        @if (ViewBag.Method != "bKash" && ViewBag.Method != "Nagad")
+                        {
+                            <div class="mb-4 text-start">
+                                <label class="form-label fw-bold">Enter OTP</label>
+                                <input type="text" name="otpCode" class="form-control form-control-lg text-center" placeholder="• • • • • •" maxlength="6" required style="letter-spacing: 0.5rem; font-size: 1.5rem;" />
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg rounded-pill fw-bold">Verify & Confirm</button>
+                        </div>
+                    </form>
+                    
+                    @if (ViewBag.Method != "bKash" && ViewBag.Method != "Nagad")
+                    {
+                        <div class="mt-4">
+                            <p class="small text-muted mb-0">Didn't receive the code?</p>
+                            <a href="#" class="btn btn-link btn-sm text-decoration-none fw-bold" onclick="alert('Resend OTP clicked. Check console.')">Resend OTP</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

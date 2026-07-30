@@ -95,6 +95,33 @@ namespace BachelorRoomFinding.Controllers
             return RedirectToAction(nameof(Users));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> EditPaymentNumber(int id)
+        {
+            var owner = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == id && u.Role.RoleName == "Owner");
+            if (owner == null) return NotFound();
+            return View(owner);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPaymentNumber(int id, string? bkashNumber, string? nagadNumber, bool isDemoNumber)
+        {
+            var owner = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == id && u.Role.RoleName == "Owner");
+            if (owner == null) return NotFound();
+
+            owner.BkashNumber = string.IsNullOrWhiteSpace(bkashNumber) ? null : bkashNumber.Trim();
+            owner.NagadNumber = string.IsNullOrWhiteSpace(nagadNumber) ? null : nagadNumber.Trim();
+            owner.IsDemoNumber = isDemoNumber;
+            await _userRepo.UpdateAsync(owner);
+
+            TempData["Success"] = "Owner payment numbers updated.";
+            return RedirectToAction(nameof(Users));
+        }
+
         // ── Room Management ───────────────────────────────────────────
         public async Task<IActionResult> Rooms(int page = 1, string search = "")
         {
@@ -122,12 +149,17 @@ namespace BachelorRoomFinding.Controllers
         {
             var room = await _roomRepo.GetByIdAsync(id);
             if (room == null) return NotFound();
+            
+            bool wasRented = room.Status == RoomStatus.Rented;
             room.Status = RoomStatus.Inactive;
+            room.IsAvailable = false;
             await _roomRepo.UpdateAsync(room);
-            await _notifSvc.CreateAsync(room.OwnerId, "Room Rejected",
-                $"Your room listing \"{room.Title}\" was not approved. Please review our guidelines.",
-                NotificationType.General);
-            TempData["Success"] = "Room rejected.";
+            
+            string notifTitle = wasRented ? "Room Marked Unavailable" : "Room Rejected";
+            string notifMsg = wasRented ? $"Your rented room listing \"{room.Title}\" has been marked inactive by an Administrator." : $"Your room listing \"{room.Title}\" was not approved. Please review our guidelines.";
+            
+            await _notifSvc.CreateAsync(room.OwnerId, notifTitle, notifMsg, NotificationType.General);
+            TempData["Success"] = wasRented ? "Room marked unavailable." : "Room rejected.";
             return RedirectToAction(nameof(Rooms));
         }
 

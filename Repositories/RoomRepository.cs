@@ -86,9 +86,9 @@ namespace BachelorRoomFinding.Repositories
             if (roomType.HasValue)
                 query = query.Where(r => r.RoomType == roomType.Value);
             if (minRent.HasValue)
-                query = query.Where(r => r.Rent >= minRent.Value);
+                query = query.Where(r => r.MonthlyRent >= minRent.Value);
             if (maxRent.HasValue)
-                query = query.Where(r => r.Rent <= maxRent.Value);
+                query = query.Where(r => r.MonthlyRent <= maxRent.Value);
             if (availableNow == true)
                 query = query.Where(r => r.IsAvailable);
             if (facilities != null && facilities.Any())
@@ -96,8 +96,8 @@ namespace BachelorRoomFinding.Repositories
 
             query = sortBy switch
             {
-                "rent_asc"  => query.OrderBy(r => r.Rent),
-                "rent_desc" => query.OrderByDescending(r => r.Rent),
+                "rent_asc"  => query.OrderBy(r => r.MonthlyRent),
+                "rent_desc" => query.OrderByDescending(r => r.MonthlyRent),
                 "views"     => query.OrderByDescending(r => r.ViewCount),
                 _           => query.OrderByDescending(r => r.PostedDate)
             };

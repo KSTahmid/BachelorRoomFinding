@@ -12,6 +12,7 @@ namespace BachelorRoomFinding.Entities
         public string PhotoPath { get; set; } = string.Empty;
 
         public bool IsPrimary { get; set; } = false;
+        public bool IsVideo { get; set; } = false;
         public DateTime UploadedAt { get; set; } = DateTime.Now;
 
         [ValidateNever]

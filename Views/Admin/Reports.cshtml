@@ -1,0 +1,69 @@
+@model List<Report>
+@{ViewData["Title"] = "Reports";}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="bi bi-flag me-2"></i>Incoming Reports</h1>
+</div>
+
+<div class="brf-card">
+    <div class="table-responsive">
+        <table class="table brf-table mb-0">
+            <thead>
+                <tr>
+                    <th>Reporter</th>
+                    <th>Reported</th>
+                    <th>Reason</th>
+                    <th>Message</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7"><div class="empty-state py-4"><i class="bi bi-flag"></i><h5>No reports yet</h5></div></td></tr>
+            }
+            @foreach (var report in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="fw-600 small">@report.Reporter?.UserName</div>
+                        <div class="text-muted" style="font-size:.75rem">ID: @report.ReporterUserId</div>
+                    </td>
+                    <td>
+                        @if (report.TargetUser != null)
+                        {
+                            <div class="fw-600 small">@report.TargetUser.UserName</div>
+                            <div class="text-muted" style="font-size:.75rem">Owner ID: @report.TargetUserId</div>
+                        }
+                        @if (report.TargetRoom != null)
+                        {
+                            <div class="small">@report.TargetRoom.Title</div>
+                            <div class="text-muted" style="font-size:.75rem">Room ID: @report.TargetRoomId</div>
+                        }
+                    </td>
+                    <td><span class="badge bg-danger">@report.Reason</span></td>
+                    <td class="small" style="max-width:340px">@report.Details</td>
+                    <td class="small text-muted">@report.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                    <td><span class="badge-status @(report.Status == ReportStatus.Resolved ? "badge-approved" : "badge-pending")">@report.Status</span></td>
+                    <td>
+                        @if (report.Status != ReportStatus.Resolved)
+                        {
+                            <form asp-action="ResolveReport" asp-route-id="@report.Id" method="post" class="d-flex gap-1">
+                                @Html.AntiForgeryToken()
+                                <input name="note" class="form-control form-control-sm" placeholder="Admin note" />
+                                <button class="btn btn-sm btn-success">Resolve</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">@report.AdminNote</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

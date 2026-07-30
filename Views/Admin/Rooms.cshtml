@@ -32,7 +32,7 @@
                     </td>
                     <td class="small">@r.Owner?.UserName</td>
                     <td class="small">@r.District, @r.Thana</td>
-                    <td><span class="rent-badge" style="font-size:.8rem">৳@r.Rent.ToString("N0")</span></td>
+                    <td><span class="rent-badge" style="font-size:.8rem">৳@r.MonthlyRent.ToString("N0")</span></td>
                     <td><span class="badge bg-secondary">@r.RoomType</span></td>
                     <td>
                         <span class="badge-status @(r.Status==RoomStatus.Active?"badge-active":r.Status==RoomStatus.PendingApproval?"badge-pending":r.Status==RoomStatus.Rented?"badge-rented":"badge-draft")">
@@ -48,9 +48,12 @@
                                     @Html.AntiForgeryToken()
                                     <button class="btn btn-sm btn-success btn-sm-action" title="Approve"><i class="bi bi-check-lg"></i></button>
                                 </form>
+                            }
+                            @if (r.Status == RoomStatus.PendingApproval || r.Status == RoomStatus.Rented)
+                            {
                                 <form asp-controller="Admin" asp-action="RejectRoom" asp-route-id="@r.Id" method="post">
                                     @Html.AntiForgeryToken()
-                                    <button class="btn btn-sm btn-danger btn-sm-action" title="Reject"><i class="bi bi-x-lg"></i></button>
+                                    <button class="btn btn-sm btn-danger btn-sm-action" title="Reject / Mark Unavailable"><i class="bi bi-x-lg"></i></button>
                                 </form>
                             }
                             <a asp-controller="Room" asp-action="Edit" asp-route-id="@r.Id" class="btn btn-sm btn-outline-primary btn-sm-action"><i class="bi bi-pencil"></i></a>

@@ -3,10 +3,11 @@ using BachelorRoomFinding.Entities;
 using BachelorRoomFinding.Interfaces;
 using BachelorRoomFinding.Repositories;
 using BachelorRoomFinding.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession(options =>
@@ -18,8 +19,30 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpContextAccessor();
 
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+try
+{
+    var csb = new SqlConnectionStringBuilder(defaultConnection);
+    if (csb.ConnectTimeout > 15) csb.ConnectTimeout = 15;
+    defaultConnection = csb.ConnectionString;
+}
+catch
+{
+    // Keep the configured connection string if it is not a SqlConnectionStringBuilder-compatible value.
+}
+
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (useInMemory)
+    {
+        options.UseInMemoryDatabase("MessBashaTest");
+    }
+    else
+    {
+        options.UseSqlServer(defaultConnection, sql => sql.CommandTimeout(20));
+    }
+});
 
 // ── Core Repositories ─────────────────────────────────────────
 builder.Services.AddScoped<IRepository<Role>, RoleRepository>();
@@ -36,29 +59,37 @@ builder.Services.AddScoped<IRepository<SavedRoom>, SavedRoomRepository>();
 builder.Services.AddScoped<IRepository<Review>, ReviewRepository>();
 builder.Services.AddScoped<IRepository<Notification>, NotificationRepository>();
 builder.Services.AddScoped<IRepository<RoommateAd>, RoommateAdRepository>();
-builder.Services.AddScoped<MessageRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 // ── Services ──────────────────────────────────────────────────
 builder.Services.AddScoped<FileUploadService>();
 builder.Services.AddScoped<NotificationService>();
-builder.Services.AddScoped<FakeEmailService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 var app = builder.Build();
 
-// ── Database Seeding ──────────────────────────────────────────
-using (var scope = app.Services.CreateScope())
+// ── Database Migration & Seeding ──────────────────────────────
+// Run this after Kestrel starts so a slow/unavailable SQL Server does not make
+// the whole site look unchanged or dead during presentation.
+app.Lifetime.ApplicationStarted.Register(() =>
 {
-    var services = scope.ServiceProvider;
-    try
+    _ = Task.Run(async () =>
     {
-        await SeedData.Initialize(services);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Seeding failed: {Message}", ex.Message);
-    }
-}
+        using var scope = app.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        try
+        {
+            await SeedData.Initialize(services);
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Database migration/seeding failed: {Message}", ex.Message);
+        }
+    });
+});
 
 if (!app.Environment.IsDevelopment())
 {

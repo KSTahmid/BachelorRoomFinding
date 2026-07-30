@@ -6,10 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BachelorRoomFinding.Repositories
 {
-    public class MessageRepository : IRepository<Message>
+    public class MessageRepository : IMessageRepository
     {
         private readonly AppDbContext _context;
-        public MessageRepository(AppDbContext context) => _context = context;
+
+        public MessageRepository(AppDbContext context)
+        {
+            _context = context;
+        }
 
         public async Task<PagedResult<Message>> GetPagedAsync(int pageNumber = 1, int pageSize = 20, string? search = null)
         {

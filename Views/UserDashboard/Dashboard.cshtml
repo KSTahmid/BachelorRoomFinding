@@ -65,18 +65,18 @@
                             <div class="fw-600 small">@a.Room?.Title</div>
                             <div class="text-muted" style="font-size:.75rem">@a.Room?.District, @a.Room?.Thana</div>
                         </td>
-                        <td><span class="rent-badge" style="font-size:.78rem">৳@a.Room?.Rent.ToString("N0")</span></td>
+                        <td><span class="rent-badge" style="font-size:.78rem">৳@a.Room?.MonthlyRent.ToString("N0")</span></td>
                         <td class="small">@a.MoveInDate.ToString("dd MMM yyyy")</td>
                         <td class="small text-muted">@a.AppliedAt.ToString("dd MMM")</td>
                         <td><span class="badge-status @(a.Status==ApplicationStatus.Approved?"badge-approved":a.Status==ApplicationStatus.Rejected?"badge-rejected":"badge-pending")">@a.Status</span></td>
                         <td>
                             @if (a.Status == ApplicationStatus.Approved && a.Payment == null)
                             {
-                                <a asp-action="Payment" asp-route-applicationId="@a.Id" class="btn btn-sm btn-primary btn-sm-action">Pay Now</a>
+                                <a asp-controller="Payment" asp-action="Choose" asp-route-applicationId="@a.Id" asp-route-amount="@(a.Room?.Advance ?? 0)" class="btn btn-sm btn-primary btn-sm-action">Pay Now</a>
                             }
                             else if (a.Payment != null)
                             {
-                                <span class="badge-status @(a.Payment.Status==PaymentStatus.Confirmed?"badge-approved":"badge-pending")">@a.Payment.Status</span>
+                                <span class="badge-status @(a.Payment.Status=="Completed"?"badge-approved":"badge-pending")">@a.Payment.Status</span>
                             }
                             else { <span class="text-muted small">—</span> }
                         </td>

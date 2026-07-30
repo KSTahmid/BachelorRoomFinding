@@ -48,6 +48,41 @@ namespace BachelorRoomFinding.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Connected()
+        {
+            var accepted = await _context.RoommateConnectionRequests
+                .Include(r => r.Sender)
+                .Include(r => r.RoommateAd).ThenInclude(a => a.User)
+                .Where(r => r.Status == ConnectionRequestStatus.Accepted &&
+                    (r.SenderUserId == UserId || r.RoommateAd.UserId == UserId))
+                .OrderByDescending(r => r.RespondedAt ?? r.CreatedAt)
+                .ToListAsync();
+
+            var userIds = accepted
+                .SelectMany(r => new[] { r.SenderUserId, r.RoommateAd.UserId })
+                .Distinct()
+                .ToList();
+            ViewBag.Preferences = await _context.UserPreferences
+                .Where(p => userIds.Contains(p.UserId))
+                .ToDictionaryAsync(p => p.UserId);
+
+            return View(accepted);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Requests()
+        {
+            var incoming = await _context.RoommateConnectionRequests
+                .Include(r => r.Sender)
+                .Include(r => r.RoommateAd)
+                .Where(r => r.RoommateAd.UserId == UserId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            return View(incoming);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Create()
         {
             var prefs = await _context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == UserId);
@@ -114,6 +149,31 @@ namespace BachelorRoomFinding.Controllers
 
             TempData["Success"] = "Connection request sent!";
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Respond(int requestId, ConnectionRequestStatus status)
+        {
+            var request = await _context.RoommateConnectionRequests
+                .Include(r => r.RoommateAd)
+                .Include(r => r.Sender)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (request == null) return NotFound();
+            if (request.RoommateAd.UserId != UserId) return Forbid();
+
+            request.Status = status;
+            request.RespondedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            string statusText = status == ConnectionRequestStatus.Accepted ? "accepted" : "declined";
+            await _notifSvc.CreateAsync(request.SenderUserId,
+                $"Roommate Request {statusText.ToUpper()}",
+                $"Your roommate connection request was {statusText}.",
+                NotificationType.NewMessage);
+
+            TempData["Success"] = $"Connection request {statusText}.";
+            return RedirectToAction(nameof(Requests));
         }
     }
 }

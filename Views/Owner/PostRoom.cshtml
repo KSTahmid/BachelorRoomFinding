@@ -2,7 +2,7 @@
 @{ViewData["Title"] = "Post a Room";}
 
 @{
-    var facilities = new[]{"WiFi","Gas","Water","Electricity","AC","Parking","Lift","Security Guard","CCTV","Furnished"};
+    var facilities = new[]{"Fan", "WiFi", "Attached Bathroom", "Shared Bathroom", "Balcony", "Reading Table", "Wardrobe", "Bed Included", "Generator/IPS", "Drinking Water", "Gas Facility", "Kitchen Access", "Fridge Sharing", "Dining System", "Security/CCTV", "Laundry Nearby", "Bike Parking", "Lift"};
     var districts  = new[]{"Dhaka","Chattogram","Sylhet","Rajshahi","Khulna","Barisal","Rangpur","Mymensingh"};
 }
 
@@ -33,10 +33,12 @@
                     <div class="col-md-4">
                         <label class="form-label">Room Type *</label>
                         <select asp-for="RoomType" class="form-select">
-                            <option value="Single">Single</option>
-                            <option value="Double">Double</option>
-                            <option value="Shared">Shared</option>
-                            <option value="Flat">Flat/Apartment</option>
+                            <option value="MaleMess">Male Mess</option>
+                            <option value="FemaleHostel">Female Hostel</option>
+                            <option value="SharedSeat">Shared Seat</option>
+                            <option value="SingleRoom">Single Room</option>
+                            <option value="Sublet">Sublet</option>
+                            <option value="BachelorFlat">Bachelor Flat</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -93,33 +95,41 @@
             <div class="form-card mb-3">
                 <p class="section-label">House Rules</p>
                 <div class="row g-2">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-check form-switch">
-                            <input asp-for="NoSmoking" class="form-check-input" type="checkbox"/>
-                            <label class="form-check-label small">No Smoking</label>
+                            <input asp-for="SmokingAllowed" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label small">Smoking Allowed</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-check form-switch">
-                            <input asp-for="NoPets" class="form-check-input" type="checkbox"/>
-                            <label class="form-check-label small">No Pets</label>
+                            <input asp-for="GuestAllowed" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label small">Guest Allowed</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small">Gender Rule</label>
-                        <select asp-for="GenderRule" class="form-select form-select-sm">
-                            <option value="Any">Any Gender</option>
-                            <option value="Male">Male Only</option>
-                            <option value="Female">Female Only</option>
-                        </select>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="BachelorOnly" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label small">Bachelor Only</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="FamilyRestricted" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label small">Family Restricted</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mt-2">
+                        <label class="form-label small">Curfew Timing</label>
+                        <input asp-for="CurfewTiming" class="form-control form-control-sm" placeholder="e.g. 10:30 PM"/>
                     </div>
                 </div>
             </div>
 
             <div class="form-card mb-3">
-                <p class="section-label">Photos (max 5MB each, jpg/png)</p>
-                <input type="file" name="PhotoFiles" class="form-control" multiple accept=".jpg,.jpeg,.png"/>
-                <div class="form-text">Upload multiple photos. First photo will be the cover.</div>
+                <p class="section-label">Media (max 15MB each, images/videos)</p>
+                <input type="file" name="MediaFiles" class="form-control" multiple accept="image/*,video/mp4,video/webm"/>
+                <div class="form-text">Upload multiple photos and videos. First file will be the cover.</div>
             </div>
         </div>
 
@@ -131,22 +141,64 @@
                     <label class="form-label">Monthly Rent *</label>
                     <div class="input-group">
                         <span class="input-group-text">৳</span>
-                        <input asp-for="Rent" type="number" class="form-control" placeholder="0"/>
+                        <input asp-for="MonthlyRent" type="number" class="form-control" placeholder="0"/>
                     </div>
-                    <span asp-validation-for="Rent" class="text-danger small"></span>
+                    <span asp-validation-for="MonthlyRent" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Security Deposit</label>
+                    <label class="form-label">Seat Rent</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="SeatRent" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Electricity Bill</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="ElectricityBill" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">WiFi Bill</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="WiFiBill" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Gas Bill</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="GasBill" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Water Bill</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="WaterBill" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Service Charge</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="ServiceCharge" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Meal Cost</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="MealCost" type="number" class="form-control" placeholder="0"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Security Deposit / Advance</label>
                     <div class="input-group">
                         <span class="input-group-text">৳</span>
                         <input asp-for="SecurityDeposit" type="number" class="form-control" placeholder="0"/>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Advance</label>
-                    <div class="input-group">
-                        <span class="input-group-text">৳</span>
-                        <input asp-for="Advance" type="number" class="form-control" placeholder="0"/>
                     </div>
                 </div>
             </div>

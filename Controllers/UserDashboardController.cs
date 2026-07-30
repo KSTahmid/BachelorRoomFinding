@@ -120,6 +120,10 @@ namespace BachelorRoomFinding.Controllers
                     a.ApplicantId == uid.Value && a.RoomId == id &&
                     a.Status != ApplicationStatus.Cancelled);
             ViewBag.AlreadyApplied = alreadyApplied;
+            ViewBag.CanReview = uid.HasValue && await CanReviewRoomAsync(id, uid.Value);
+            ViewBag.OwnerBkash = room.Owner?.BkashNumber ?? room.Owner?.PhoneNumber;
+            ViewBag.OwnerNagad = room.Owner?.NagadNumber ?? room.Owner?.PhoneNumber;
+            ViewBag.IsDemoNumber = room.Owner?.IsDemoNumber ?? true;
 
             return View(room);
         }
@@ -130,6 +134,11 @@ namespace BachelorRoomFinding.Controllers
         {
             var room = await _roomRepo.GetByIdAsync(roomId);
             if (room == null) return NotFound();
+            if (room.OwnerId == UserId)
+            {
+                TempData["Error"] = "You cannot apply to your own room.";
+                return RedirectToAction(nameof(RoomDetail), new { id = roomId });
+            }
             ViewBag.Room = room;
             return View(new ApplicationViewModel { RoomId = roomId });
         }
@@ -137,13 +146,20 @@ namespace BachelorRoomFinding.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Apply(ApplicationViewModel vm)
         {
-            if (!ModelState.IsValid)
+            var uid = UserId;
+            var room = await _roomRepo.GetByIdAsync(vm.RoomId);
+            
+            if (room != null && room.OwnerId == uid)
             {
-                ViewBag.Room = await _roomRepo.GetByIdAsync(vm.RoomId);
-                return View(vm);
+                TempData["Error"] = "You cannot apply to your own room.";
+                return RedirectToAction(nameof(RoomDetail), new { id = vm.RoomId });
             }
 
-            var uid = UserId;
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Room = room;
+                return View(vm);
+            }
             var alreadyApplied = await _context.RentalApplications.AnyAsync(a =>
                 a.ApplicantId == uid && a.RoomId == vm.RoomId &&
                 a.Status != ApplicationStatus.Cancelled);
@@ -167,7 +183,6 @@ namespace BachelorRoomFinding.Controllers
             await _appRepo.AddAsync(app);
 
             // Notify owner
-            var room = await _roomRepo.GetByIdAsync(vm.RoomId);
             if (room != null)
                 await _notifSvc.CreateAsync(room.OwnerId, "New Rental Application",
                     $"Someone has applied for your room \"{room.Title}\".",
@@ -187,7 +202,7 @@ namespace BachelorRoomFinding.Controllers
 
             if (app == null || app.ApplicantId != UserId) return Forbid();
             ViewBag.Application = app;
-            return View(new PaymentViewModel { ApplicationId = applicationId, Amount = app.Room.Rent });
+            return View(new PaymentViewModel { ApplicationId = applicationId, Amount = app.Room.MonthlyRent });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
@@ -199,17 +214,32 @@ namespace BachelorRoomFinding.Controllers
                 return View(vm);
             }
 
-            var method = Enum.Parse<PaymentMethod>(vm.Method);
+            // Guard: reject duplicate bKash/Nagad transaction codes
+            if (!string.IsNullOrWhiteSpace(vm.TransactionId))
+            {
+                var txExists = await _context.Payments
+                    .AnyAsync(p => p.TransactionId == vm.TransactionId);
+                if (txExists)
+                {
+                    ModelState.AddModelError("TransactionId",
+                        "This transaction ID has already been submitted. Each bKash/Nagad transaction can only be used once.");
+                    ViewBag.Application = await _context.RentalApplications
+                        .Include(a => a.Room)
+                        .FirstOrDefaultAsync(a => a.Id == vm.ApplicationId);
+                    return View(vm);
+                }
+            }
+
             var payment = new Payment
             {
                 ApplicationId  = vm.ApplicationId,
-                Method         = method,
+                Method         = vm.Method,
                 Amount         = vm.Amount,
                 TransactionId  = vm.TransactionId,
                 BankName       = vm.BankName,
                 BankAccount    = vm.BankAccount,
-                Status         = PaymentStatus.Pending,
-                PaidAt         = DateTime.Now
+                Status         = "Pending",
+                CreatedAt      = DateTime.Now
             };
             await _paymentRepo.AddAsync(payment);
 
@@ -268,6 +298,12 @@ namespace BachelorRoomFinding.Controllers
         {
             var room = await _roomRepo.GetByIdAsync(roomId);
             if (room == null) return NotFound();
+            var canReview = await CanReviewRoomAsync(roomId, UserId);
+            if (!canReview)
+            {
+                TempData["Error"] = "Only confirmed tenants who completed rent payment can review this room.";
+                return RedirectToAction(nameof(RoomDetail), new { id = roomId });
+            }
             ViewBag.Room = room;
             return View(new ReviewViewModel { RoomId = roomId });
         }
@@ -278,6 +314,12 @@ namespace BachelorRoomFinding.Controllers
             if (!ModelState.IsValid) { ViewBag.Room = await _roomRepo.GetByIdAsync(vm.RoomId); return View(vm); }
 
             var uid = UserId;
+            if (!await CanReviewRoomAsync(vm.RoomId, uid))
+            {
+                TempData["Error"] = "Only confirmed tenants who completed rent payment can review this room.";
+                return RedirectToAction(nameof(RoomDetail), new { id = vm.RoomId });
+            }
+
             var already = await _context.Reviews.AnyAsync(r => r.RoomId == vm.RoomId && r.ReviewerId == uid);
             if (already) { TempData["Error"] = "You have already reviewed this room."; return RedirectToAction(nameof(RoomDetail), new { id = vm.RoomId }); }
 
@@ -287,7 +329,8 @@ namespace BachelorRoomFinding.Controllers
                 ReviewerId = uid,
                 Rating     = vm.Rating,
                 Comment    = vm.Comment,
-                CreatedAt  = DateTime.Now
+                CreatedAt  = DateTime.Now,
+                IsVerifiedTenantReview = true
             });
 
             TempData["Success"] = "Review submitted!";
@@ -358,6 +401,63 @@ namespace BachelorRoomFinding.Controllers
 
             TempData["Success"] = "Report submitted. Our team will review it shortly.";
             return RedirectToAction(nameof(RoomDetail), new { id = roomId });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReportOwner(int ownerId, int? roomId, ReportReason reason, string details)
+        {
+            if (ownerId == UserId)
+            {
+                TempData["Error"] = "You cannot report your own profile.";
+                if (roomId.HasValue && roomId.Value > 0) return RedirectToAction(nameof(RoomDetail), new { id = roomId.Value });
+                return RedirectToAction(nameof(Browse));
+            }
+
+            var targetUser = await _context.Users.FindAsync(ownerId);
+            if (targetUser == null) return NotFound("Owner profile not found.");
+
+            int? targetRoomId = (roomId.HasValue && roomId.Value > 0) ? roomId.Value : null;
+
+            _context.Reports.Add(new Report
+            {
+                ReporterUserId = UserId,
+                TargetRoomId = targetRoomId,
+                TargetUserId = ownerId,
+                Reason = reason,
+                Details = details ?? string.Empty,
+                Status = ReportStatus.New,
+                CreatedAt = DateTime.Now
+            });
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Owner report submitted successfully. Admin panel has been notified.";
+            if (targetRoomId.HasValue) return RedirectToAction(nameof(RoomDetail), new { id = targetRoomId.Value });
+            return RedirectToAction(nameof(Browse));
+        }
+
+        private async Task<bool> CanReviewRoomAsync(int roomId, int userId)
+        {
+            // 1. Approved application
+            var hasApprovedApp = await _context.RentalApplications.AnyAsync(a =>
+                a.RoomId == roomId &&
+                a.ApplicantId == userId &&
+                a.Status == ApplicationStatus.Approved);
+            if (hasApprovedApp) return true;
+
+            // 2. Completed payment
+            var hasPayment = await _context.Payments.AnyAsync(p =>
+                p.RoomId == roomId &&
+                p.UserId == userId &&
+                (p.Status == "Completed" || p.Status == "Approved"));
+            if (hasPayment) return true;
+
+            // 3. Mess member for this room
+            var isMessMember = await _context.MessMembers.AnyAsync(m =>
+                m.MessGroup != null &&
+                m.MessGroup.RoomId == roomId &&
+                m.UserId == userId);
+
+            return isMessMember;
         }
     }
 

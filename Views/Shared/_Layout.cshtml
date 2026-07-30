@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - BRF | Bachelor Room Finder BD</title>
+    <title>@ViewData["Title"] - MessBasha</title>
     <meta name="description" content="Find bachelor rooms for rent in Bangladesh. Browse verified listings in Dhaka, Chattogram, Sylhet and more." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,7 +28,7 @@
             <i class="bi bi-list fs-5"></i>
         </button>
         <a class="brf-brand" href="/">
-            <i class="bi bi-house-door-fill"></i> BRF
+            <i class="bi bi-house-door-fill"></i> MessBasha
         </a>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -107,6 +107,9 @@
                     <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="LoginHistory"?"active":"")" asp-controller="Admin" asp-action="LoginHistory">
                         <i class="bi bi-clock-history"></i> Login History
                     </a>
+                    <a class="sidebar-link @(ctrl=="Admin"&&ViewContext.RouteData.Values["action"]?.ToString()=="Reports"?"active":"")" asp-controller="Admin" asp-action="Reports">
+                        <i class="bi bi-flag"></i> Owner Reports
+                    </a>
                     <hr class="sidebar-divider">
                     <p class="sidebar-section-label">MANAGE</p>
                     <a class="sidebar-link @(ctrl=="User"?"active":"")" asp-controller="User" asp-action="Index">
@@ -141,6 +144,9 @@
                     <a class="sidebar-link @(ctrl=="Owner"&&ViewContext.RouteData.Values["action"]?.ToString()=="Kyc"?"active":"")" asp-controller="Owner" asp-action="Kyc">
                         <i class="bi bi-patch-check"></i> My KYC
                     </a>
+                    <a class="sidebar-link @(ctrl=="Mess"?"active":"")" asp-controller="Mess" asp-action="Index">
+                        <i class="bi bi-diagram-3"></i> MessBoard
+                    </a>
                 }
                 else
                 {
@@ -154,6 +160,9 @@
                     <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="SavedRooms"?"active":"")" asp-controller="UserDashboard" asp-action="SavedRooms">
                         <i class="bi bi-bookmark-heart"></i> Saved Rooms
                     </a>
+                    <a class="sidebar-link @(ctrl=="Mess"?"active":"")" asp-controller="Mess" asp-action="Index">
+                        <i class="bi bi-diagram-3"></i> Mess Board
+                    </a>
                     <hr class="sidebar-divider">
                     <a class="sidebar-link @(ctrl=="Message"?"active":"")" asp-controller="Message" asp-action="Inbox">
                         <i class="bi bi-chat-dots"></i> Messages
@@ -163,12 +172,18 @@
                     </a>
                 }
                 <hr class="sidebar-divider">
+                <!-- Universal links — visible to ALL roles -->
+                <p class="sidebar-section-label">DISCOVER</p>
                 <a class="sidebar-link @(ctrl=="UserDashboard"&&ViewContext.RouteData.Values["action"]?.ToString()=="Browse"?"active":"")" asp-controller="UserDashboard" asp-action="Browse">
                     <i class="bi bi-house-door"></i> Browse Listings
                 </a>
                 <a class="sidebar-link @(ctrl=="Roommate"?"active":"")" asp-controller="Roommate" asp-action="Index">
                     <i class="bi bi-people"></i> Find Roommate
                 </a>
+                <a class="sidebar-link @(ctrl=="Roommate"&&ViewContext.RouteData.Values["action"]?.ToString()=="Connected"?"active":"")" asp-controller="Roommate" asp-action="Connected">
+                    <i class="bi bi-person-check"></i> Connected Roommates
+                </a>
+                <hr class="sidebar-divider">
                 <a class="sidebar-link text-danger-soft" asp-controller="Account" asp-action="Logout">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </a>

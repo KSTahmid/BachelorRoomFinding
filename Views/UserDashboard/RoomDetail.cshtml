@@ -11,19 +11,40 @@
 <div class="row g-4">
     <!-- Left: Photos + Details -->
     <div class="col-lg-8">
-        <!-- Photo Gallery -->
+        <!-- Media Gallery -->
         <div class="brf-card mb-3 overflow-hidden">
             @if (Model.Photos?.Any() == true)
             {
                 var primary = Model.Photos.FirstOrDefault(p => p.IsPrimary) ?? Model.Photos.First();
-                <img src="@primary.PhotoPath" class="w-100" style="height:380px;object-fit:cover" alt="@Model.Title" id="mainPhoto"/>
+                <div id="mainMediaContainer" class="w-100 bg-black d-flex justify-content-center align-items-center" style="height:380px;">
+                    @if (primary.IsVideo)
+                    {
+                        <video id="mainMedia" src="@primary.PhotoPath" class="w-100 h-100" style="object-fit:contain" controls autoplay muted></video>
+                    }
+                    else
+                    {
+                        <img id="mainMedia" src="@primary.PhotoPath" class="w-100 h-100" style="object-fit:contain" alt="@Model.Title" />
+                    }
+                </div>
                 @if (Model.Photos.Count > 1)
                 {
-                    <div class="d-flex gap-2 p-2 overflow-x-auto">
+                    <div class="d-flex gap-2 p-2 overflow-x-auto bg-light">
                         @foreach (var p in Model.Photos)
                         {
-                            <img src="@p.PhotoPath" style="height:70px;width:100px;object-fit:cover;border-radius:6px;cursor:pointer;opacity:@(p.IsPrimary?"1":".6")"
-                                 onclick="document.getElementById('mainPhoto').src='@p.PhotoPath';this.style.opacity='1'" alt="photo"/>
+                            <div class="position-relative" style="height:70px;width:100px;cursor:pointer;opacity:@(p.IsPrimary?"1":".6")" 
+                                 onclick="updateMainMedia('@p.PhotoPath', @p.IsVideo.ToString().ToLower(), this)">
+                                @if (p.IsVideo)
+                                {
+                                    <video src="@p.PhotoPath" class="w-100 h-100 rounded" style="object-fit:cover" muted></video>
+                                    <div class="position-absolute top-50 start-50 translate-middle text-white bg-dark bg-opacity-50 rounded-circle d-flex justify-content-center align-items-center" style="width:24px;height:24px;">
+                                        <i class="bi bi-play-fill"></i>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <img src="@p.PhotoPath" class="w-100 h-100 rounded" style="object-fit:cover" alt="thumbnail" />
+                                }
+                            </div>
                         }
                     </div>
                 }
@@ -42,7 +63,7 @@
                     <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>@Model.Address, @Model.Thana, @Model.District</div>
                 </div>
                 <div class="text-end">
-                    <div class="rent-badge fs-5">৳@Model.Rent.ToString("N0")<span style="font-size:.75rem;font-weight:400">/mo</span></div>
+                    <div class="rent-badge fs-5">৳@Model.MonthlyRent.ToString("N0")<span style="font-size:.75rem;font-weight:400">/mo</span></div>
                     <div class="text-muted small mt-1"><i class="bi bi-eye me-1"></i>@Model.ViewCount views</div>
                 </div>
             </div>
@@ -50,22 +71,72 @@
                 <span class="badge bg-primary">@Model.RoomType</span>
                 <span class="badge bg-secondary">@Model.BedroomCount Bed(s)</span>
                 <span class="badge-status @(Model.IsAvailable?"badge-active":"badge-rented")">@(Model.IsAvailable?"Available":"Occupied")</span>
-                
-                <!-- Safety Shield -->
-                <div class="d-inline-flex align-items-center bg-light border rounded-pill px-2 py-1 ms-2" title="Safety Score based on verification and reviews">
-                    <i class="bi bi-shield-check text-success me-1"></i>
-                    <span class="fw-bold small text-success">@Model.SafetyScore</span>
-                    <span class="text-muted small ms-1" style="font-size:.7rem">Safety</span>
-                </div>
 
-                @if(Model.AvailableFrom.HasValue) { <span class="badge bg-light text-dark">From @Model.AvailableFrom?.ToString("dd MMM yyyy")</span> }
+                <!-- Clickable Safety Shield -->
+                <button class="btn btn-sm d-inline-flex align-items-center px-2 py-1 ms-1"
+                        style="background:#E1F5EE;border:0.5px solid #A7F3D0;border-radius:8px;"
+                        data-bs-toggle="collapse" data-bs-target="#safetyBreakdown" aria-expanded="false"
+                        title="Click to see safety score breakdown">
+                    <i class="bi bi-shield-check text-success me-1"></i>
+                    <span class="fw-500 small" style="color:#065F46;">@Model.SafetyScore</span>
+                    <span class="text-muted small ms-1" style="font-size:.7rem;">Safety</span>
+                    <i class="bi bi-chevron-down ms-1 small text-muted"></i>
+                </button>
+
+                @if (Model.AvailableFrom.HasValue)
+                {
+                    <span class="badge bg-light text-dark">From @Model.AvailableFrom?.ToString("dd MMM yyyy")</span>
+                }
             </div>
+
+            <!-- Safety Breakdown Collapse Panel -->
+            <div class="collapse mb-3" id="safetyBreakdown">
+                <div class="p-3 rounded" style="background:#F0FDF4; border:0.5px solid #A7F3D0;">
+                    <p class="small fw-500 mb-2" style="color:#065F46;">
+                        <i class="bi bi-shield-check me-1"></i>Safety Score Breakdown
+                        <span class="float-end fw-bold">@Model.SafetyScore / 100</span>
+                    </p>
+                    @{
+                        // Component scores
+                        bool ownerVerified   = Model.Owner?.IsVerified == true;
+                        bool hasReviews      = Model.Reviews?.Any() == true && Model.Reviews.Average(r => r.Rating) >= 3.5;
+                        int nidScore         = ownerVerified ? 30 : 0;
+                        int reviewScore      = hasReviews   ? 20 : 0;
+                        int adminScore       = Model.SafetyScore - nidScore - reviewScore; // remainder assumed from admin
+                        adminScore           = Math.Max(0, Math.Min(50, adminScore));
+
+                        var components = new[]
+                        {
+                            ("NID Identity Verified", nidScore, 30, ownerVerified ? "text-success" : "text-muted", ownerVerified ? "bi-check-circle-fill text-success" : "bi-x-circle text-muted"),
+                            ("High User Ratings (≥3.5★)", reviewScore, 20, hasReviews ? "text-success" : "text-muted", hasReviews ? "bi-check-circle-fill text-success" : "bi-x-circle text-muted"),
+                            ("Admin Verified Listing", adminScore, 50, adminScore > 0 ? "text-success" : "text-muted", adminScore > 0 ? "bi-check-circle-fill text-success" : "bi-x-circle text-muted"),
+                        };
+                    }
+                    @foreach (var (label, earned, max, textClass, iconClass) in components)
+                    {
+                        int pct = max > 0 ? (int)((double)earned / max * 100) : 0;
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small text-muted"><i class="bi @iconClass me-1"></i>@label</span>
+                                <span class="small @textClass fw-500">+@earned / @max pts</span>
+                            </div>
+                            <div class="progress" style="height:5px;border-radius:4px;">
+                                <div class="progress-bar" role="progressbar"
+                                     style="width:@pct%; background:#0F6E56; border-radius:4px;"
+                                     aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    }
+                    <p class="text-muted mb-0 mt-2" style="font-size:.7rem;">Always verify the property in person. Safety scores are based on owner verification and community reviews.</p>
+                </div>
+            </div>
+
             <p class="text-muted">@Model.Description</p>
 
             <!-- Pricing -->
             <div class="row g-2 mb-3">
                 <div class="col-4 text-center p-2 bg-light rounded">
-                    <div class="fw-700 text-primary">৳@Model.Rent.ToString("N0")</div><div class="small text-muted">Monthly Rent</div>
+                    <div class="fw-700 text-primary">৳@Model.MonthlyRent.ToString("N0")</div><div class="small text-muted">Monthly Rent</div>
                 </div>
                 <div class="col-4 text-center p-2 bg-light rounded">
                     <div class="fw-700">৳@Model.SecurityDeposit.ToString("N0")</div><div class="small text-muted">Security</div>
@@ -103,8 +174,12 @@
                     @if (Model.Reviews?.Any() == true)
                     { <span class="badge bg-warning text-dark ms-1">⭐ @ViewBag.AvgRating / 5</span> }
                 </h6>
-                @if (uid != null)
-                { <a asp-action="Review" asp-route-roomId="@Model.Id" class="btn btn-sm btn-outline-warning">Write Review</a> }
+                @if (uid != null && ViewBag.CanReview == true)
+                {
+                    <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#writeReviewModal">
+                        <i class="bi bi-star-fill me-1"></i>Write Review
+                    </button>
+                }
             </div>
             @if (Model.Reviews?.Any() == true)
             {
@@ -157,45 +232,113 @@
                    class="btn btn-outline-primary btn-sm w-100 mb-2">
                     <i class="bi bi-chat-dots me-2"></i>Message Owner
                 </a>
+                <button class="btn btn-outline-danger btn-sm w-100" data-bs-toggle="modal" data-bs-target="#reportOwnerModal">
+                    <i class="bi bi-flag me-2"></i>Report Owner
+                </button>
+            }
+        </div>
+
+        <div class="form-card mb-3">
+            <p class="section-label">Payment Numbers</p>
+            @if (ViewBag.IsDemoNumber == true)
+            {
+                <div class="alert alert-warning small mb-2">এই owner এর payment number টি demo। বাস্তব পেমেন্ট করা যাবে না।</div>
+            }
+            <div class="small d-flex justify-content-between mb-1"><span>bKash</span><strong>@(ViewBag.OwnerBkash ?? "Not set")</strong></div>
+            <div class="small d-flex justify-content-between"><span>Nagad</span><strong>@(ViewBag.OwnerNagad ?? "Not set")</strong></div>
+            @if (ViewBag.IsDemoNumber == true)
+            {
+                <span class="badge bg-warning text-dark mt-2">Demo</span>
             }
         </div>
 
         <!-- Monthly Cost Estimator -->
         <div class="form-card mb-3 border-primary border-opacity-25 bg-primary bg-opacity-10">
-            <p class="section-label text-primary border-primary border-opacity-25"><i class="bi bi-calculator me-2"></i>Monthly Budget Estimator</p>
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Usage Level (Electricity/AC)</label>
-                <select id="usageLevel" class="form-select form-select-sm" onchange="calculateBudget()">
-                    <option value="500">Light (Fan/Light only)</option>
-                    <option value="1200" selected>Medium (PC/Fridge)</option>
-                    <option value="2500">Heavy (AC/Heater)</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Daily Commute (km)</label>
-                <div class="d-flex align-items-center gap-2">
-                    <input type="range" id="commuteDist" class="form-range" min="0" max="20" step="1" value="5" oninput="distVal.textContent=this.value+' km';calculateBudget()">
-                    <span id="distVal" class="badge bg-white text-dark border small">5 km</span>
+            <p class="section-label text-primary border-primary border-opacity-25"><i class="bi bi-calculator me-2"></i>Bangladesh-Standard Budget Estimator</p>
+            
+            <div class="mb-3 row g-2">
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Electricity Usage</label>
+                    <select id="usageLevel" class="form-select form-select-sm" onchange="calculateBudget()">
+                        <option value="400">Low (Fan/Light)</option>
+                        <option value="1000" selected>Medium (PC/Fridge)</option>
+                        <option value="2500">High (AC usage)</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Gas Setup</label>
+                    <select id="gasType" class="form-select form-select-sm" onchange="calculateBudget()">
+                        <option value="1080" selected>Gas Line (Shared)</option>
+                        <option value="1500">Cylinder (Shared)</option>
+                    </select>
                 </div>
             </div>
+
+            <div class="mb-3 row g-2">
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Water & Service Charge</label>
+                    <input type="number" id="waterServiceCost" class="form-control form-control-sm" value="500" onchange="calculateBudget()">
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Internet / WiFi</label>
+                    <select id="wifiPref" class="form-select form-select-sm" onchange="calculateBudget()">
+                        <option value="300" selected>Shared Broadband</option>
+                        <option value="1000">Personal Broadband</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="mb-3">
-                <label class="form-label small fw-bold">Food Preference</label>
+                <label class="form-label small fw-bold">Food Habit</label>
                 <select id="foodPref" class="form-select form-select-sm" onchange="calculateBudget()">
-                    <option value="3000">Self Cook (Cheap)</option>
-                    <option value="5500" selected>Mess/Canteen (Standard)</option>
-                    <option value="9000">Dining Out (Premium)</option>
+                    <option value="3500">Self Cook (Bazar)</option>
+                    <option value="5500" selected>Mess Meal / Canteen</option>
+                    <option value="9000">Restaurant / Takeout</option>
                 </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Daily Commute (km, 1-way)</label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="range" id="commuteDist" class="form-range" min="0" max="30" step="1" value="5" oninput="distVal.textContent=this.value+' km';calculateBudget()">
+                    <span id="distVal" class="badge bg-white text-dark border small" style="min-width: 50px;">5 km</span>
+                </div>
+                <select id="transportMode" class="form-select form-select-sm mt-2" onchange="calculateBudget()">
+                    <option value="2">Bus (Local)</option>
+                    <option value="10" selected>Rickshaw</option>
+                    <option value="15">CNG</option>
+                    <option value="25">Ride-share (Bike/Car)</option>
+                </select>
+            </div>
+
+            <div class="mb-3 row g-2">
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Mobile Recharge</label>
+                    <input type="number" id="mobileCost" class="form-control form-control-sm" value="500" onchange="calculateBudget()" placeholder="Data & Call">
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Laundry</label>
+                    <select id="laundryCost" class="form-select form-select-sm" onchange="calculateBudget()">
+                        <option value="200" selected>Self-wash</option>
+                        <option value="800">Dhobi / Laundry service</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Personal & Misc.</label>
+                <input type="number" id="miscCost" class="form-control form-control-sm" value="1000" onchange="calculateBudget()" placeholder="Toiletries, healthcare, etc.">
             </div>
 
             <hr class="my-3 opacity-10">
             
             <div class="small">
                 <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Base Rent</span>
-                    <span class="fw-600">৳<span id="estRent">@Model.Rent</span></span>
+                    <span class="text-muted">Room Rent</span>
+                    <span class="fw-600">৳<span id="estRent">@Model.MonthlyRent</span></span>
                 </div>
                 <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Utilities & WiFi</span>
+                    <span class="text-muted">Utility (Gas, Elec, Water, WiFi)</span>
                     <span class="fw-600">৳<span id="estUtils">0</span></span>
                 </div>
                 <div class="d-flex justify-content-between mb-1">
@@ -206,9 +349,16 @@
                     <span class="text-muted">Transport</span>
                     <span class="fw-600">৳<span id="estTrans">0</span></span>
                 </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Personal (Mobile, Laundry, Misc)</span>
+                    <span class="fw-600">৳<span id="estPersonal">0</span></span>
+                </div>
                 <div class="d-flex justify-content-between mt-2 pt-2 border-top border-primary border-opacity-25">
                     <span class="fw-800 text-primary">Estimated Total</span>
                     <span class="fw-800 text-primary fs-5">৳<span id="estTotal">0</span></span>
+                </div>
+                <div id="savingsTip" class="alert alert-success p-2 mt-3 mb-0 small text-center" style="display:none;">
+                    <!-- Savings tip generated dynamically -->
                 </div>
             </div>
         </div>
@@ -220,6 +370,15 @@
                 <i class="bi bi-lock fs-2 text-muted"></i>
                 <p class="mt-2 text-muted small">Login to apply for this room</p>
                 <a asp-controller="Account" asp-action="Login" class="btn btn-primary w-100">Login to Apply</a>
+            </div>
+        }
+        else if (uid == Model.OwnerId)
+        {
+            <div class="form-card text-center bg-light">
+                <i class="bi bi-person-badge fs-2 text-primary"></i>
+                <p class="mt-2 fw-600 mb-1">This is your own listing</p>
+                <p class="text-muted small mb-3">You cannot apply to your own room.</p>
+                <a asp-controller="Owner" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm w-100">Manage Room</a>
             </div>
         }
         else if ((bool)ViewBag.AlreadyApplied)
@@ -262,6 +421,80 @@
     </div>
 </div>
 
+<!-- Report Owner Modal -->
+<div class="modal fade" id="reportOwnerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Report Owner Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ReportOwner" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ownerId" value="@Model.OwnerId" />
+                <input type="hidden" name="roomId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Reason for reporting</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="MisleadingInfo">Misleading Profile</option>
+                            <option value="Harassment">Harassment</option>
+                            <option value="SuspiciousListing">Suspicious Owner</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Report message</label>
+                        <textarea name="details" class="form-control" rows="3" placeholder="Explain what happened..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-4">Submit Owner Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Write Review Modal -->
+<div class="modal fade" id="writeReviewModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="bi bi-star-fill me-2"></i>Write a Review for @Model.Title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Review" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="RoomId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Star Rating *</label>
+                        <div class="d-flex gap-2">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <div>
+                                    <input type="radio" class="btn-check" name="Rating" id="mod_r@i" value="@i" @(i == 5 ? "checked" : "") />
+                                    <label class="btn btn-outline-warning text-dark" for="mod_r@i">@i ⭐</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Written Review / Feedback</label>
+                        <textarea name="Comment" class="form-control" rows="4" placeholder="Share your experience living in this room..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold">Submit Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Report Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1">
     <div class="modal-dialog">
@@ -300,23 +533,69 @@
 
 @section Scripts {
     <script>
+        function updateMainMedia(path, isVideo, thumbnailElement) {
+            const container = document.getElementById('mainMediaContainer');
+            if (isVideo) {
+                container.innerHTML = `<video id="mainMedia" src="${path}" class="w-100 h-100" style="object-fit:contain" controls autoplay></video>`;
+            } else {
+                container.innerHTML = `<img id="mainMedia" src="${path}" class="w-100 h-100" style="object-fit:contain" alt="Room Media" />`;
+            }
+            
+            // Reset opacity on all thumbnails
+            const thumbnails = thumbnailElement.parentElement.children;
+            for (let i = 0; i < thumbnails.length; i++) {
+                thumbnails[i].style.opacity = '0.6';
+            }
+            // Set active thumbnail to full opacity
+            thumbnailElement.style.opacity = '1';
+        }
+
         function calculateBudget() {
-            const rent = @Model.Rent;
-            const electricity = parseInt(document.getElementById('usageLevel').value);
-            const wifi = 500; // Fixed estimate for WiFi
-            const food = parseInt(document.getElementById('foodPref').value);
-            const distance = parseInt(document.getElementById('commuteDist').value);
+            const rent = @Model.MonthlyRent;
+            const electricity = parseInt(document.getElementById('usageLevel').value) || 0;
+            const gas = parseInt(document.getElementById('gasType').value) || 0;
+            const waterService = parseInt(document.getElementById('waterServiceCost').value) || 0;
+            const wifi = parseInt(document.getElementById('wifiPref').value) || 0;
             
-            // Transport formula: distance * 2 ways * 22 working days * 10 BDT avg rate
-            const transport = distance * 2 * 22 * 10;
+            const food = parseInt(document.getElementById('foodPref').value) || 0;
             
-            const utils = electricity + wifi;
-            const total = rent + utils + food + transport;
+            const distance = parseInt(document.getElementById('commuteDist').value) || 0;
+            const transportRate = parseInt(document.getElementById('transportMode').value) || 0;
+            
+            const mobile = parseInt(document.getElementById('mobileCost').value) || 0;
+            const laundry = parseInt(document.getElementById('laundryCost').value) || 0;
+            const misc = parseInt(document.getElementById('miscCost').value) || 0;
+            
+            // Transport formula: distance * 2 ways * 22 working days * rate per km
+            const transport = distance * 2 * 22 * transportRate;
+            
+            const utils = electricity + gas + waterService + wifi;
+            const personal = mobile + laundry + misc;
+            const total = rent + utils + food + transport + personal;
 
             document.getElementById('estUtils').textContent = utils.toLocaleString();
             document.getElementById('estFood').textContent = food.toLocaleString();
             document.getElementById('estTrans').textContent = transport.toLocaleString();
+            document.getElementById('estPersonal').textContent = personal.toLocaleString();
             document.getElementById('estTotal').textContent = total.toLocaleString();
+
+            // Savings tip logic
+            const tipBox = document.getElementById('savingsTip');
+            if (food >= 9000) {
+                tipBox.style.display = 'block';
+                tipBox.innerHTML = '💡 <strong>Savings Tip:</strong> Switch to a Mess Meal plan or self-cook to save up to ৳3,500/mo on food!';
+            } else if (transport > 4000) {
+                tipBox.style.display = 'block';
+                tipBox.innerHTML = '💡 <strong>Savings Tip:</strong> Your transport cost is high. Consider using local bus or ride-sharing bikes to save money.';
+            } else if (electricity >= 2500) {
+                tipBox.style.display = 'block';
+                tipBox.innerHTML = '💡 <strong>Savings Tip:</strong> AC usage adds ৳1,500+ to your bill. Use it wisely to keep costs down.';
+            } else if (laundry >= 800) {
+                tipBox.style.display = 'block';
+                tipBox.innerHTML = '💡 <strong>Savings Tip:</strong> Self-washing clothes can save you ৳600/mo compared to Dhobi services.';
+            } else {
+                tipBox.style.display = 'none';
+            }
         }
         
         // Initial calculation

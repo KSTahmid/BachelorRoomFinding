@@ -1,0 +1,866 @@
+@model BachelorRoomFinding.Entities.MessGroup
+@{
+    ViewData["Title"] = "Mess Board - Digital Community";
+    bool isManager = ViewBag.IsManager ?? false;
+    int currentUid = ViewBag.CurrentUserId ?? 0;
+    var myRole = ViewBag.MyRole ?? BachelorRoomFinding.Entities.MessRole.Tenant;
+    
+    decimal monthlyBazarTotal = ViewBag.MonthlyBazarTotal ?? 0m;
+    decimal perHeadBazar = ViewBag.PerHeadBazar ?? 0m;
+    decimal totalContributions = ViewBag.TotalContributions ?? 0m;
+    decimal totalFundExpenses = ViewBag.TotalFundExpenses ?? 0m;
+    decimal netFundBalance = ViewBag.NetFundBalance ?? 0m;
+}
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title mb-1"><i class="bi bi-diagram-3 me-2 text-primary"></i>@Model.Name</h1>
+        <p class="text-muted small mb-0">Room: <strong>@Model.Room?.Title</strong> | Owner: <strong>@Model.Room?.Owner?.UserName</strong></p>
+        <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+            <span class="badge bg-dark px-3 py-2 fs-6">Invite Code: <strong>@Model.InviteCode</strong></span>
+            <span class="badge bg-primary px-3 py-2 fs-6">Role: @myRole</span>
+            @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+            {
+                <form asp-action="RegenerateInviteCode" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="groupId" value="@Model.Id" />
+                    <button class="btn btn-sm btn-outline-secondary" type="submit" title="Generate new invite code"><i class="bi bi-arrow-repeat me-1"></i>New Code</button>
+                </form>
+            }
+        </div>
+    </div>
+    
+    <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
+        @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+        {
+            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addNoticeModal"><i class="bi bi-megaphone me-1"></i>Post Announcement</button>
+            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addRosterModal"><i class="bi bi-calendar-plus me-1"></i>Assign Task</button>
+        }
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal"><i class="bi bi-receipt me-1"></i>Log Expense / Bazar</button>
+    </div>
+</div>
+
+<!-- Bangladesh Mess Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="brf-card p-3 text-center border-start border-primary border-4 shadow-sm">
+            <div class="text-muted small">Monthly Bazar Total</div>
+            <div class="fw-bold fs-4 text-primary mt-1">৳@monthlyBazarTotal.ToString("N0")</div>
+            <div class="text-muted opacity-75" style="font-size:.72rem;">Per-Head: ৳@perHeadBazar.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="brf-card p-3 text-center border-start border-success border-4 shadow-sm">
+            <div class="text-muted small">Total Fund Collected</div>
+            <div class="fw-bold fs-4 text-success mt-1">৳@totalContributions.ToString("N0")</div>
+            <div class="text-muted opacity-75" style="font-size:.72rem;">@Model.FundEntries.Count(f => f.EntryType == "Contribution") Contributions</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="brf-card p-3 text-center border-start border-warning border-4 shadow-sm">
+            <div class="text-muted small">Total Fund Expenses</div>
+            <div class="fw-bold fs-4 text-warning mt-1">৳@totalFundExpenses.ToString("N0")</div>
+            <div class="text-muted opacity-75" style="font-size:.72rem;">Common + Shared</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="brf-card p-3 text-center border-start border-@(netFundBalance >= 0 ? "info" : "danger") border-4 shadow-sm">
+            <div class="text-muted small">Net Fund Balance</div>
+            <div class="fw-bold fs-4 text-@(netFundBalance >= 0 ? "info" : "danger") mt-1">৳@netFundBalance.ToString("N0")</div>
+            <div class="text-muted opacity-75" style="font-size:.72rem;">Current Cash Hand</div>
+        </div>
+    </div>
+</div>
+
+<!-- Nav Tabs for Mess Modules -->
+<ul class="nav nav-pills mb-4 border-bottom pb-2 gap-2" id="messTab" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active fw-600" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button"><i class="bi bi-columns-gap me-1"></i>Notice & Members</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-600" id="bazar-tab" data-bs-toggle="tab" data-bs-target="#bazar" type="button"><i class="bi bi-cart3 me-1"></i>1. Bazar & Expenses</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-600" id="cleaning-tab" data-bs-toggle="tab" data-bs-target="#cleaning" type="button"><i class="bi bi-broom me-1"></i>2. Cleaning Roster</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-600" id="fund-tab" data-bs-toggle="tab" data-bs-target="#fund" type="button"><i class="bi bi-wallet2 me-1"></i>3. Mess Fund & Dues</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-600" id="cooking-tab" data-bs-toggle="tab" data-bs-target="#cooking" type="button"><i class="bi bi-egg-fried me-1"></i>4. Cooking & Menu Vote</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-600" id="utilities-tab" data-bs-toggle="tab" data-bs-target="#utilities" type="button"><i class="bi bi-tools me-1"></i>5 & 6. Utilities, Damage & List</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="messTabContent">
+    <!-- TAB 1: Overview & Notice Board -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <!-- Notice Board -->
+                <div class="brf-card p-0 mb-4 border shadow-sm">
+                    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-megaphone me-2 text-primary"></i>Notice Board (Owner / Admin Announcements)</h6>
+                        @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+                        {
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addNoticeModal">+ New Notice</button>
+                        }
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @if (!Model.Notices.Any())
+                        {
+                            <div class="p-4 text-center text-muted small">No announcements posted yet.</div>
+                        }
+                        @foreach (var notice in Model.Notices)
+                        {
+                            <div class="list-group-item p-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="fw-bold mb-1 text-dark">@notice.Title</h6>
+                                    <span class="badge bg-light text-dark border">@notice.CreatedAt.ToString("dd MMM, hh:mm tt")</span>
+                                </div>
+                                <p class="small text-secondary mb-2">@notice.Body</p>
+                                <div class="text-muted" style="font-size:.72rem;">
+                                    <i class="bi bi-person-circle me-1"></i>Posted by <strong>@notice.PostedBy?.UserName</strong>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Recent Activities Summary -->
+                <div class="brf-card p-3 border shadow-sm">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-activity me-2 text-primary"></i>Active Tasks & Reminders</h6>
+                    <div class="list-group list-group-flush">
+                        @foreach (var roster in Model.Rosters.Where(r => !r.IsCompleted).Take(5))
+                        {
+                            <div class="list-group-item p-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-info text-dark me-2">@roster.TaskType</span>
+                                    <strong class="small">@roster.AssignedUser?.UserName</strong>
+                                    <span class="text-muted small">(@roster.AssignedDate.ToString("dd MMM"))</span>
+                                    @if (!string.IsNullOrEmpty(roster.MenuOrNotes)) { <small class="text-muted"> - @roster.MenuOrNotes</small> }
+                                </div>
+                                @if (roster.AssignedUserId == currentUid || isManager)
+                                {
+                                    <form asp-action="MarkRosterComplete" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="rosterId" value="@roster.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:.75rem;">Done</button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar: Members & Roles -->
+            <div class="col-lg-4">
+                <div class="brf-card p-0 border shadow-sm mb-4">
+                    <div class="p-3 bg-light border-bottom">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-people me-2"></i>Mess Members (@Model.Members.Count)</h6>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @foreach (var m in Model.Members)
+                        {
+                            <div class="list-group-item p-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-sm" style="width:36px;height:36px;background:#0F6E56;color:white;font-size:0.9rem;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                                        @(m.User?.UserName?[0].ToString().ToUpper() ?? "U")
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold small mb-0">@m.User?.UserName</div>
+                                        <div class="text-muted" style="font-size:.7rem;">@m.User?.PhoneNumber</div>
+                                    </div>
+                                </div>
+                                <span class="badge @(m.Role == BachelorRoomFinding.Entities.MessRole.Owner ? "bg-warning text-dark" : m.Role == BachelorRoomFinding.Entities.MessRole.MessAdmin ? "bg-primary" : "bg-secondary")">
+                                    @m.Role
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Bazar & Expenses Management -->
+    <div class="tab-pane fade" id="bazar" role="tabpanel">
+        <div class="brf-card p-0 border shadow-sm">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-cart3 me-2 text-primary"></i>Bazar & Grocery Expense Entry</h6>
+                    <small class="text-muted">Per-head cost auto-splits among assigned participants with receipt images.</small>
+                </div>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">+ Add Bazar Expense</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table brf-table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Title / Item</th>
+                            <th>Category</th>
+                            <th>Added By</th>
+                            <th>Total Cost</th>
+                            <th>Participants / Split</th>
+                            <th>Receipt</th>
+                            <th>Your Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Expenses.Any())
+                        {
+                            <tr><td colspan="8" class="text-center py-4 text-muted">No expenses recorded yet.</td></tr>
+                        }
+                        @foreach (var exp in Model.Expenses)
+                        {
+                            var myShare = exp.Shares.FirstOrDefault(s => s.UserId == currentUid);
+                            <tr>
+                                <td class="small">@exp.Date.ToString("dd MMM yyyy")</td>
+                                <td class="fw-bold small">@exp.Title</td>
+                                <td><span class="badge bg-secondary">@exp.Category</span></td>
+                                <td class="small">@exp.AddedBy?.UserName</td>
+                                <td class="fw-bold text-primary">৳@exp.Amount.ToString("N0")</td>
+                                <td class="small">
+                                    @exp.Shares.Count members (৳@(exp.Shares.Any() ? (exp.Amount / exp.Shares.Count).ToString("N0") : "0")/head)
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(exp.ReceiptImagePath))
+                                    {
+                                        <a href="@exp.ReceiptImagePath" target="_blank" class="btn btn-sm btn-outline-info py-0 px-2" style="font-size:.75rem;"><i class="bi bi-image me-1"></i>View Receipt</a>
+                                    }
+                                    else { <span class="text-muted small">No photo</span> }
+                                </td>
+                                <td>
+                                    @if (myShare != null)
+                                    {
+                                        if (myShare.IsPaid)
+                                        {
+                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid (৳@myShare.Amount.ToString("N0"))</span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="MarkSharePaid" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="shareId" value="@myShare.Id" />
+                                                <button class="btn btn-sm btn-danger py-0 px-2" style="font-size:.75rem;">Pay ৳@myShare.Amount.ToString("N0")</button>
+                                            </form>
+                                        }
+                                    }
+                                    else { <span class="text-muted small">-</span> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Cleaning Roster -->
+    <div class="tab-pane fade" id="cleaning" role="tabpanel">
+        <div class="brf-card p-0 border shadow-sm">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-broom me-2 text-primary"></i>Cleaning Roster & Tasks</h6>
+                    <small class="text-muted">Assign members by date, mark complete, and trigger reminders.</small>
+                </div>
+                @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+                {
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRosterModal">+ Assign Cleaning Task</button>
+                }
+            </div>
+            <div class="table-responsive">
+                <table class="table brf-table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Assigned Date</th>
+                            <th>Task Type</th>
+                            <th>Assigned Member</th>
+                            <th>Notes</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ var cleaningRosters = Model.Rosters.Where(r => r.TaskType == "Cleaning" || r.TaskType == "Utility").ToList(); }
+                        @if (!cleaningRosters.Any())
+                        {
+                            <tr><td colspan="6" class="text-center py-4 text-muted">No cleaning roster tasks assigned.</td></tr>
+                        }
+                        @foreach (var r in cleaningRosters)
+                        {
+                            <tr>
+                                <td class="fw-bold small">@r.AssignedDate.ToString("ddd, dd MMM yyyy")</td>
+                                <td><span class="badge bg-info text-dark">@r.TaskType</span></td>
+                                <td class="fw-bold">@r.AssignedUser?.UserName</td>
+                                <td class="small text-muted">@(r.MenuOrNotes ?? "Routine Cleaning")</td>
+                                <td>
+                                    @if (r.IsCompleted)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Completed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        @if (!r.IsCompleted && (r.AssignedUserId == currentUid || isManager))
+                                        {
+                                            <form asp-action="MarkRosterComplete" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="rosterId" value="@r.Id" />
+                                                <button class="btn btn-sm btn-success py-0 px-2" style="font-size:.75rem;">Mark Done</button>
+                                            </form>
+                                        }
+                                        @if (!r.IsCompleted && isManager)
+                                        {
+                                            <form asp-action="SendRosterReminder" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="rosterId" value="@r.Id" />
+                                                <button class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size:.75rem;"><i class="bi bi-bell me-1"></i>Remind</button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: Mess Fund & Cash Management -->
+    <div class="tab-pane fade" id="fund" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="brf-card p-0 border shadow-sm mb-4">
+                    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-cash-coin me-2 text-primary"></i>Mess Fund & Cash Transaction Log</h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table brf-table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Member</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.FundEntries.Any())
+                                {
+                                    <tr><td colspan="5" class="text-center py-4 text-muted">No fund entries logged yet.</td></tr>
+                                }
+                                @foreach (var entry in Model.FundEntries)
+                                {
+                                    <tr>
+                                        <td class="small">@entry.EntryDate.ToString("dd MMM yyyy")</td>
+                                        <td>
+                                            <span class="badge @(entry.EntryType == "Contribution" ? "bg-success" : "bg-danger")">
+                                                @entry.EntryType
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold small">@entry.User?.UserName</td>
+                                        <td class="small">@entry.Description</td>
+                                        <td class="fw-bold @(entry.EntryType == "Contribution" ? "text-success" : "text-danger")">
+                                            ৳@entry.Amount.ToString("N0")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="brf-card p-3 border shadow-sm mb-4">
+                    <h6 class="fw-bold mb-3"><i class="bi text-primary bi-plus-circle me-2"></i>Log Fund Contribution / Expense</h6>
+                    @if (isManager)
+                    {
+                        <form asp-action="AddFundEntry" method="post" class="row g-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="groupId" value="@Model.Id" />
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Transaction Type</label>
+                                <select name="entryType" class="form-select form-select-sm">
+                                    <option value="Contribution">Member Contribution (Deposit)</option>
+                                    <option value="CommonExpense">Common Fund Expense</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Member</label>
+                                <select name="userId" class="form-select form-select-sm">
+                                    @foreach (var mem in Model.Members)
+                                    {
+                                        <option value="@mem.UserId">@mem.User?.UserName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Amount (৳)</label>
+                                <input name="amount" type="number" min="1" class="form-control form-control-sm" placeholder="e.g. 2000" required />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Description</label>
+                                <input name="description" class="form-control form-control-sm" placeholder="e.g. June Monthly Advance" required />
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button class="btn btn-sm btn-primary w-100 py-2">Record Fund Entry</button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="text-muted small">Only Mess Admin can record fund entries. Please hand over cash/bKash to your Manager.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 5: Cooking Roster & Menu Voting -->
+    <div class="tab-pane fade" id="cooking" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <!-- Cooking Roster -->
+                <div class="brf-card p-0 border shadow-sm mb-4">
+                    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-egg-fried me-2 text-primary"></i>Cooking Schedule</h6>
+                        @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+                        {
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRosterModal">+ Assign Cook</button>
+                        }
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @{ var cookRosters = Model.Rosters.Where(r => r.TaskType == "Cooking").ToList(); }
+                        @if (!cookRosters.Any())
+                        {
+                            <div class="p-4 text-center text-muted small">No cooking schedule assigned yet.</div>
+                        }
+                        @foreach (var c in cookRosters)
+                        {
+                            <div class="list-group-item p-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold">@c.AssignedUser?.UserName</div>
+                                    <div class="small text-muted"><i class="bi bi-calendar-event me-1"></i>@c.AssignedDate.ToString("dd MMM yyyy") | @(c.MenuOrNotes ?? "Standard Meal")</div>
+                                </div>
+                                @if (c.IsCompleted)
+                                {
+                                    <span class="badge bg-success">Completed</span>
+                                }
+                                else if (c.AssignedUserId == currentUid || isManager)
+                                {
+                                    <form asp-action="MarkRosterComplete" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="rosterId" value="@c.Id" />
+                                        <button class="btn btn-sm btn-outline-success">Done</button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Voting System -->
+            <div class="col-lg-6">
+                <div class="brf-card p-3 border shadow-sm mb-4">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-hand-thumbs-up me-2 text-primary"></i>Daily Menu Voting</h6>
+                    <form asp-action="AddMenuOption" method="post" class="row g-2 mb-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="groupId" value="@Model.Id" />
+                        <div class="col-6">
+                            <input name="optionName" class="form-control form-control-sm" placeholder="Dish name (e.g., Beef Curry)" required />
+                        </div>
+                        <div class="col-3">
+                            <select name="mealType" class="form-select form-select-sm">
+                                <option value="Lunch">Lunch</option>
+                                <option value="Dinner">Dinner</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <button type="submit" class="btn btn-sm btn-primary w-100">+ Add</button>
+                        </div>
+                    </form>
+
+                    <div class="list-group list-group-flush">
+                        @if (!Model.MenuVotes.Any())
+                        {
+                            <div class="p-3 text-center text-muted small">No menu vote options available today. Propose one above!</div>
+                        }
+                        @foreach (var vote in Model.MenuVotes)
+                        {
+                            var votedList = (vote.VotedUserIdsCsv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+                            bool alreadyVoted = votedList.Contains(currentUid.ToString());
+                            <div class="list-group-item p-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold text-dark">@vote.OptionName</div>
+                                    <span class="badge bg-light text-dark border">@vote.MealType</span>
+                                    <span class="small text-muted ms-2">Proposed by @vote.CreatedBy?.UserName</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary fs-6 px-3 py-2">👍 @vote.VoteCount</span>
+                                    @if (!alreadyVoted)
+                                    {
+                                        <form asp-action="VoteMenuOption" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="voteId" value="@vote.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Vote</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Voted</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 6: Utilities, Damage Reports & Shared Shopping List -->
+    <div class="tab-pane fade" id="utilities" role="tabpanel">
+        <div class="row g-4">
+            <!-- Meter Reading Log -->
+            <div class="col-lg-6">
+                <div class="brf-card p-0 border shadow-sm mb-4">
+                    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-speedometer2 me-2 text-primary"></i>Utility Meter Reading Log</h6>
+                        @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+                        {
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addMeterModal">+ Log Meter</button>
+                        }
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table brf-table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Utility</th>
+                                    <th>Readings (Prev → Curr)</th>
+                                    <th>Bill (৳)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.MeterReadings.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center py-4 text-muted">No meter readings logged yet.</td></tr>
+                                }
+                                @foreach (var meter in Model.MeterReadings)
+                                {
+                                    <tr>
+                                        <td class="small">@meter.ReadingDate.ToString("dd MMM yyyy")</td>
+                                        <td><span class="badge bg-secondary">@meter.UtilityType</span></td>
+                                        <td class="small">@meter.PreviousReading → <strong>@meter.CurrentReading</strong></td>
+                                        <td class="fw-bold text-danger">৳@meter.BillAmount.ToString("N0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Damage Reports (Auto-Notifies Owner) -->
+            <div class="col-lg-6">
+                <div class="brf-card p-0 border shadow-sm mb-4">
+                    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Damage Reports (Owner Notified)</h6>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addDamageModal">+ Report Damage</button>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @if (!Model.DamageReports.Any())
+                        {
+                            <div class="p-4 text-center text-muted small">No property damage reported. All good!</div>
+                        }
+                        @foreach (var dam in Model.DamageReports)
+                        {
+                            <div class="list-group-item p-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="fw-bold text-dark mb-1">@dam.Title</h6>
+                                    <span class="badge @(dam.Status == "Fixed" ? "bg-success" : dam.Status == "InProgress" ? "bg-warning text-dark" : "bg-danger")">@dam.Status</span>
+                                </div>
+                                <p class="small text-secondary mb-1">@dam.Description</p>
+                                <div class="text-muted small">Reported by @dam.ReportedBy?.UserName on @dam.ReportedAt.ToString("dd MMM yyyy")</div>
+                                @if (isManager || myRole == BachelorRoomFinding.Entities.MessRole.Owner)
+                                {
+                                    <form asp-action="UpdateDamageReportStatus" method="post" class="mt-2 d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="reportId" value="@dam.Id" />
+                                        <select name="status" class="form-select form-select-sm" style="width:140px;">
+                                            <option value="Open" selected="@(dam.Status=="Open")">Open</option>
+                                            <option value="InProgress" selected="@(dam.Status=="InProgress")">In Progress</option>
+                                            <option value="Fixed" selected="@(dam.Status=="Fixed")">Fixed</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-secondary py-0">Update</button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Shared Shopping List -->
+                <div class="brf-card p-3 border shadow-sm">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-card-checklist me-2 text-primary"></i>Shared Mess Shopping List</h6>
+                    <form asp-action="AddShoppingItem" method="post" class="row g-2 mb-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="groupId" value="@Model.Id" />
+                        <div class="col-6"><input name="itemName" class="form-control form-control-sm" placeholder="Item name (e.g. Salt, Soap)" required /></div>
+                        <div class="col-4"><input name="quantity" class="form-control form-control-sm" placeholder="Qty (e.g. 2 kg)" required /></div>
+                        <div class="col-2"><button type="submit" class="btn btn-sm btn-primary w-100">+</button></div>
+                    </form>
+
+                    <div class="list-group list-group-flush">
+                        @foreach (var shop in Model.ShoppingListItems)
+                        {
+                            <div class="list-group-item p-2 d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <form asp-action="ToggleShoppingItemPurchased" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="itemId" value="@shop.Id" />
+                                        <button type="submit" class="border-0 bg-transparent p-0 text-start">
+                                            <i class="bi @(shop.IsPurchased ? "bi-check-square-fill text-success" : "bi-square text-secondary") me-2"></i>
+                                            <span class="@(shop.IsPurchased ? "text-decoration-line-through text-muted" : "fw-bold text-dark")">@shop.ItemName (@shop.Quantity)</span>
+                                        </button>
+                                    </form>
+                                </div>
+                                <small class="text-muted" style="font-size:.72rem;">Added by @shop.AddedBy?.UserName</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+<!-- Notice Modal -->
+<div class="modal fade" id="addNoticeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Post Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddNotice" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@Model.Id" />
+                <div class="modal-body">
+                    <label class="form-label fw-bold">Announcement Title</label>
+                    <input name="title" class="form-control mb-3" required maxlength="120" placeholder="e.g., Rent due date, Cleaning notice" />
+                    <label class="form-label fw-bold">Message Details</label>
+                    <textarea name="body" class="form-control" rows="4" required maxlength="1000" placeholder="Write full details here..."></textarea>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary px-4">Post Notice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Roster Modal -->
+<div class="modal fade" id="addRosterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Assign Member Task / Roster</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddRoster" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Select Member</label>
+                            <select name="assignedUserId" class="form-select">
+                                @foreach (var mem in Model.Members)
+                                {
+                                    <option value="@mem.UserId">@mem.User?.UserName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Task Type</label>
+                            <select name="taskType" class="form-select">
+                                <option value="Cleaning">Cleaning</option>
+                                <option value="Cooking">Cooking</option>
+                                <option value="Bazar">Bazar / Grocery</option>
+                                <option value="Utility">Utility Check</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Date</label>
+                            <input name="assignedDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Notes / Menu</label>
+                            <input name="menuOrNotes" class="form-control" placeholder="e.g. Clean kitchen / Cook dinner" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary px-4">Assign Roster</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Log Mess Expense / Bazar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddExpense" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Expense Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g., Friday Bazar, Gas Cylinder" required />
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Amount (৳)</label>
+                            <input type="number" name="amount" class="form-control" placeholder="e.g. 1500" min="1" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="Bazar">Bazar / Grocery</option>
+                                <option value="Electricity">Electricity</option>
+                                <option value="Gas">Gas</option>
+                                <option value="Water">Water</option>
+                                <option value="Internet">Internet / WiFi</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Receipt Photo Upload</label>
+                        <input type="file" name="receiptImage" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Split among participants:</label>
+                        <div class="border rounded p-2" style="max-height:140px; overflow-y:auto;">
+                            @foreach (var mem in Model.Members)
+                            {
+                                <div class="form-check mb-1">
+                                    <input class="form-check-input" type="checkbox" name="participantIds" value="@mem.UserId" id="chk2_@mem.UserId" checked>
+                                    <label class="form-check-label small" for="chk2_@mem.UserId">
+                                        @mem.User?.UserName @(mem.UserId == currentUid ? "(You)" : "")
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Split Cost</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Meter Reading Modal -->
+<div class="modal fade" id="addMeterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Log Meter Reading & Bill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddMeterReading" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@Model.Id" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Utility Type</label>
+                            <select name="utilityType" class="form-select">
+                                <option value="Electricity">Electricity</option>
+                                <option value="Gas">Gas</option>
+                                <option value="Water">Water</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Bill Amount (৳)</label>
+                            <input name="billAmount" type="number" class="form-control" placeholder="0" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Previous Reading</label>
+                            <input name="previousReading" type="number" step="0.01" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Current Reading</label>
+                            <input name="currentReading" type="number" step="0.01" class="form-control" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Notes</label>
+                            <input name="notes" class="form-control" placeholder="e.g. Month of June meter units" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary px-4">Log Reading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Damage Report Modal (Notifies Owner) -->
+<div class="modal fade" id="addDamageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold">Report Property Damage</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddDamageReport" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@Model.Id" />
+                <div class="modal-body">
+                    <p class="text-muted small">Submitting this report will automatically send an urgent notification to the room owner (<strong>@Model.Room?.Owner?.UserName</strong>).</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Issue Title</label>
+                        <input name="title" class="form-control" placeholder="e.g. Bathroom pipe leak, Broken fan switch" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description & Location</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Describe the damage details..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-danger px-4">Notify Owner & Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

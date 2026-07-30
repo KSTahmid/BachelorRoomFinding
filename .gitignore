@@ -363,4 +363,9 @@ FodyWeavers.xsd
 
 # Local configurations and SQLite files
 appsettings.Local.json
-*.db
+*.db*.db-shm
+*.db-wal
+.dotnet_home/
+scratch/
+wwwroot/uploads/
+BachelorRoomFinderDb.db*

@@ -1,0 +1,69 @@
+@model List<RoommateConnectionRequest>
+@{
+    ViewData["Title"] = "Connected Roommates";
+    var currentUid = Context.Session.GetInt32("UserId") ?? 0;
+    var preferences = ViewBag.Preferences as Dictionary<int, UserPreference> ?? new Dictionary<int, UserPreference>();
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title mb-0"><i class="bi bi-person-check me-2"></i>Connected Profiles</h1>
+        <p class="text-muted small mb-0">Accepted roommate connections with direct chat access</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-primary btn-sm">Find More</a>
+</div>
+
+<div class="row g-4">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="brf-card p-5 text-center">
+                <i class="bi bi-person-check fs-1 text-muted opacity-25"></i>
+                <h5 class="mt-3">No accepted connections yet</h5>
+                <p class="text-muted">Accepted roommate profiles will appear here with a message button.</p>
+                <a asp-action="Index" class="btn btn-primary btn-sm">Browse Roommates</a>
+            </div>
+        </div>
+    }
+    @foreach (var request in Model)
+    {
+        var other = request.SenderUserId == currentUid ? request.RoommateAd?.User : request.Sender;
+        if (other == null) continue;
+        preferences.TryGetValue(other.UserId, out var prefs);
+        <div class="col-md-6 col-xl-4">
+            <div class="brf-card h-100 p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="avatar-sm" style="width:54px;height:54px;background:#0F6E56;font-size:1.25rem">
+                        @(other.UserName.Length > 0 ? other.UserName[0].ToString().ToUpper() : "U")
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">@other.UserName</h6>
+                        <div class="text-muted small">@other.Email</div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(other.ProfilePhotoPath))
+                {
+                    <img src="@other.ProfilePhotoPath" alt="@other.UserName" class="w-100 rounded mb-3" style="height:160px;object-fit:cover" />
+                }
+
+                <div class="small text-muted mb-3">
+                    <div><i class="bi bi-geo-alt me-1"></i>@request.RoommateAd.PreferredAreas</div>
+                    <div><i class="bi bi-cash-stack me-1"></i>৳@request.RoommateAd.MaxRentPerPerson.ToString("N0")/mo</div>
+                    @if (prefs != null)
+                    {
+                        <div class="mt-2 d-flex flex-wrap gap-1">
+                            <span class="badge bg-light text-dark border">Sleep: @prefs.SleepSchedule</span>
+                            <span class="badge bg-light text-dark border">Food: @prefs.FoodHabit</span>
+                            <span class="badge bg-light text-dark border">Clean: @prefs.Cleanliness</span>
+                        </div>
+                    }
+                </div>
+
+                <a asp-controller="Message" asp-action="Conversation" asp-route-userId="@other.UserId" class="btn btn-primary w-100">
+                    <i class="bi bi-chat-dots me-1"></i>Message
+                </a>
+            </div>
+        </div>
+    }
+</div>

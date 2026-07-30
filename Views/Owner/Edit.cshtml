@@ -1,0 +1,174 @@
+@model BachelorRoomFinding.ViewModels.RoomCreateViewModel
+@{
+    ViewData["Title"] = "Manage Room";
+}
+
+<div class="page-header">
+    <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Manage Room</h4>
+</div>
+
+<div class="row">
+    <div class="col-md-10">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="OwnerId" />
+                    <input type="hidden" asp-for="Status" />
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Title" class="form-label fw-bold">Title <span class="text-danger">*</span></label>
+                            <input asp-for="Title" class="form-control form-control-lg" required />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                            <textarea asp-for="Description" class="form-control" rows="4" required></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="District" class="form-label fw-bold">District <span class="text-danger">*</span></label>
+                            <input asp-for="District" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Thana" class="form-label fw-bold">Thana/Upazila <span class="text-danger">*</span></label>
+                            <input asp-for="Thana" class="form-control" required />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label fw-bold">Full Address <span class="text-danger">*</span></label>
+                            <input asp-for="Address" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="MonthlyRent" class="form-label fw-bold">Monthly Rent (৳) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">৳</span>
+                                <input asp-for="MonthlyRent" type="number" class="form-control" min="0" step="100" required />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="SecurityDeposit" class="form-label fw-bold">Security Deposit (৳)</label>
+                            <input asp-for="SecurityDeposit" type="number" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Advance" class="form-label fw-bold">Advance Payment (৳)</label>
+                            <input asp-for="Advance" type="number" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="SeatRent" class="form-label fw-bold">Seat Rent (৳)</label>
+                            <input asp-for="SeatRent" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ElectricityBill" class="form-label fw-bold">Electricity Bill (৳)</label>
+                            <input asp-for="ElectricityBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="WiFiBill" class="form-label fw-bold">WiFi Bill (৳)</label>
+                            <input asp-for="WiFiBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="GasBill" class="form-label fw-bold">Gas Bill (৳)</label>
+                            <input asp-for="GasBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="WaterBill" class="form-label fw-bold">Water Bill (৳)</label>
+                            <input asp-for="WaterBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ServiceCharge" class="form-label fw-bold">Service Charge (৳)</label>
+                            <input asp-for="ServiceCharge" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="MealCost" class="form-label fw-bold">Meal Cost (৳)</label>
+                            <input asp-for="MealCost" type="number" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="BedroomCount" class="form-label fw-bold">Bedrooms</label>
+                            <input asp-for="BedroomCount" type="number" class="form-control" min="1" max="20" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="RoomType" class="form-label fw-bold">Room Type</label>
+                            <select asp-for="RoomType" class="form-select" asp-items="Html.GetEnumSelectList<BachelorRoomFinding.Entities.RoomType>()"></select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="AvailableFrom" class="form-label fw-bold">Available From</label>
+                            <input asp-for="AvailableFrom" type="date" class="form-control" />
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Facilities</label>
+                            <div class="row">
+                                @{
+                                    var facilities = new[]{"Fan", "WiFi", "Attached Bathroom", "Shared Bathroom", "Balcony", "Reading Table", "Wardrobe", "Bed Included", "Generator/IPS", "Drinking Water", "Gas Facility", "Kitchen Access", "Fridge Sharing", "Dining System", "Security/CCTV", "Laundry Nearby", "Bike Parking", "Lift"};
+                                    foreach (var f in facilities)
+                                    {
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="SelectedFacilities" value="@f" id="f_@f" 
+                                                       @(Model.SelectedFacilities.Contains(f) ? "checked" : "") />
+                                                <label class="form-check-label" for="f_@f">@f</label>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label fw-bold">Rules</label>
+                            <div class="d-flex flex-wrap gap-4 mt-2">
+                                <div class="form-check">
+                                    <input asp-for="SmokingAllowed" class="form-check-input" type="checkbox" />
+                                    <label asp-for="SmokingAllowed" class="form-check-label">Smoking Allowed</label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="GuestAllowed" class="form-check-input" type="checkbox" />
+                                    <label asp-for="GuestAllowed" class="form-check-label">Guest Allowed</label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="BachelorOnly" class="form-check-input" type="checkbox" />
+                                    <label asp-for="BachelorOnly" class="form-check-label">Bachelor Only</label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="FamilyRestricted" class="form-check-input" type="checkbox" />
+                                    <label asp-for="FamilyRestricted" class="form-check-label">Family Restricted</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-bold">Curfew Timing</label>
+                            <input asp-for="CurfewTiming" class="form-control" placeholder="e.g. 10:30 PM" />
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label fw-bold">Update Photos/Videos (Optional)</label>
+                            <input type="file" name="MediaFiles" class="form-control" multiple accept="image/*,video/*" />
+                            <div class="form-text">Uploading new files will replace the existing media for this room. Keep this empty to retain existing media. Max 5MB per file.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5"><i class="bi bi-save me-2"></i>Save Changes</button>
+                        <a asp-action="MyRooms" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

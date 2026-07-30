@@ -47,12 +47,12 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label asp-for="Rent" class="form-label fw-bold">Monthly Rent (৳) <span class="text-danger">*</span></label>
+                            <label asp-for="MonthlyRent" class="form-label fw-bold">Monthly Rent (৳) <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">৳</span>
-                                <input asp-for="Rent" type="number" class="form-control" min="500" step="100" required />
+                                <input asp-for="MonthlyRent" type="number" class="form-control" min="0" step="100" required />
                             </div>
-                            <span asp-validation-for="Rent" class="text-danger small"></span>
+                            <span asp-validation-for="MonthlyRent" class="text-danger small"></span>
                         </div>
 
                         <div class="col-md-4">
@@ -69,6 +69,35 @@
                                 <span class="input-group-text">৳</span>
                                 <input asp-for="Advance" type="number" class="form-control" min="0" step="100" />
                             </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="SeatRent" class="form-label fw-bold">Seat Rent (৳)</label>
+                            <input asp-for="SeatRent" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ElectricityBill" class="form-label fw-bold">Electricity Bill (৳)</label>
+                            <input asp-for="ElectricityBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="WiFiBill" class="form-label fw-bold">WiFi Bill (৳)</label>
+                            <input asp-for="WiFiBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="GasBill" class="form-label fw-bold">Gas Bill (৳)</label>
+                            <input asp-for="GasBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="WaterBill" class="form-label fw-bold">Water Bill (৳)</label>
+                            <input asp-for="WaterBill" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ServiceCharge" class="form-label fw-bold">Service Charge (৳)</label>
+                            <input asp-for="ServiceCharge" type="number" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="MealCost" class="form-label fw-bold">Meal Cost (৳)</label>
+                            <input asp-for="MealCost" type="number" class="form-control" />
                         </div>
 
                         <div class="col-md-4">
@@ -111,7 +140,7 @@
                             <label class="form-label fw-bold">Facilities</label>
                             <div class="row">
                                 @{
-                                    var facilities = new[] { "WiFi", "Attached Bath", "Balcony", "Generator", "Lift", "CCTV", "Security", "Parking" };
+                                    var facilities = new[]{"Fan", "WiFi", "Attached Bathroom", "Shared Bathroom", "Balcony", "Reading Table", "Wardrobe", "Bed Included", "Generator/IPS", "Drinking Water", "Gas Facility", "Kitchen Access", "Fridge Sharing", "Dining System", "Security/CCTV", "Laundry Nearby", "Bike Parking", "Lift"};
                                     foreach (var f in facilities)
                                     {
                                         <div class="col-md-3 col-6 mb-2">
@@ -126,35 +155,31 @@
                         </div>
 
                         <div class="col-12 mt-3">
+                        <div class="col-12 mt-3">
                             <label class="form-label fw-bold">Rules</label>
-                            <div class="d-flex gap-4">
+                            <div class="d-flex flex-wrap gap-4 mt-2">
                                 <div class="form-check">
-                                    <input asp-for="NoSmoking" class="form-check-input" type="checkbox" />
-                                    <label asp-for="NoSmoking" class="form-check-label">No Smoking</label>
+                                    <input asp-for="SmokingAllowed" class="form-check-input" type="checkbox" />
+                                    <label asp-for="SmokingAllowed" class="form-check-label">Smoking Allowed</label>
                                 </div>
                                 <div class="form-check">
-                                    <input asp-for="NoPets" class="form-check-input" type="checkbox" />
-                                    <label asp-for="NoPets" class="form-check-label">No Pets</label>
+                                    <input asp-for="GuestAllowed" class="form-check-input" type="checkbox" />
+                                    <label asp-for="GuestAllowed" class="form-check-label">Guest Allowed</label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="BachelorOnly" class="form-check-input" type="checkbox" />
+                                    <label asp-for="BachelorOnly" class="form-check-label">Bachelor Only</label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="FamilyRestricted" class="form-check-input" type="checkbox" />
+                                    <label asp-for="FamilyRestricted" class="form-check-label">Family Restricted</label>
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-md-6 mt-3">
-                            <label class="form-label fw-bold">Gender Preference</label>
-                            <div class="mt-1">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" asp-for="GenderRule" value="Any" checked id="g_any">
-                                    <label class="form-check-label" for="g_any">Any</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" asp-for="GenderRule" value="Male" id="g_male">
-                                    <label class="form-check-label" for="g_male">Male Only</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" asp-for="GenderRule" value="Female" id="g_female">
-                                    <label class="form-check-label" for="g_female">Female Only</label>
-                                </div>
-                            </div>
+                            <label class="form-label fw-bold">Curfew Timing</label>
+                            <input asp-for="CurfewTiming" class="form-control" placeholder="e.g. 10:30 PM" />
                         </div>
 
                         <div class="col-12 mt-4">

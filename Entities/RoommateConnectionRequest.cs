@@ -19,6 +19,12 @@ namespace BachelorRoomFinding.Entities
         public ConnectionRequestStatus Status { get; set; } = ConnectionRequestStatus.Pending;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        // Payment Fields
+        public string PaymentStatus { get; set; } = "Pending";
+        public string? PaymentMethod { get; set; }
+        public string? PaymentTransactionId { get; set; }
+        public DateTime? RespondedAt { get; set; }
+
         [ValidateNever]
         [ForeignKey("SenderUserId")]
         public virtual User Sender { get; set; } = null!;

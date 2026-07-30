@@ -22,6 +22,9 @@ namespace BachelorRoomFinding.Entities
         public string? Address { get; set; }
         public string? PhoneNumber { get; set; }
         public string? ProfilePhotoPath { get; set; }
+        public string? BkashNumber { get; set; }
+        public string? NagadNumber { get; set; }
+        public bool IsDemoNumber { get; set; } = true;
 
         public bool IsApprovedByAdmin { get; set; } = true;
         public bool IsVerified { get; set; } = false;

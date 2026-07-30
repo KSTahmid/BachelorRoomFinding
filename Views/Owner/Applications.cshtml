@@ -38,7 +38,7 @@ else
                             { 
                                 <div class="small">
                                     <span class="badge bg-light text-dark">@a.Payment.Method</span>
-                                    <span class="badge-status @(a.Payment.Status==PaymentStatus.Confirmed?"badge-approved":"badge-pending")">@a.Payment.Status</span>
+                                    <span class="badge-status @(a.Payment.Status=="Completed"?"badge-approved":"badge-pending")">@a.Payment.Status</span>
                                     @if (!string.IsNullOrEmpty(a.Payment.TransactionId))
                                     {
                                         <div class="text-muted mt-1" style="font-size:.7rem">TXID: <span class="fw-600">@a.Payment.TransactionId</span></div>
@@ -61,7 +61,7 @@ else
                                     </form>
                                 </div>
                             }
-                            else if (a.Status == ApplicationStatus.Approved && a.Payment != null && a.Payment.Status == PaymentStatus.Pending)
+                            else if (a.Status == ApplicationStatus.Approved && a.Payment != null && a.Payment.Status == "Pending")
                             {
                                 <form asp-action="ConfirmPayment" asp-route-applicationId="@a.Id" method="post">
                                     @Html.AntiForgeryToken()

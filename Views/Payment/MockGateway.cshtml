@@ -1,0 +1,71 @@
+@{
+    ViewData["Title"] = $"{ViewBag.Method} Sandbox Gateway";
+    Layout = null; // Use a simpler layout or no layout for a gateway feel
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body { background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .gateway-card { width: 100%; max-width: 400px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        .gateway-header { background-color: @(ViewBag.Method == "bKash" ? "#e2136e" : "#ed1c24"); color: white; padding: 20px; text-align: center; }
+        .gateway-header h4 { margin: 0; font-weight: bold; }
+        .gateway-body { padding: 30px; }
+    </style>
+</head>
+<body>
+
+<div class="gateway-card">
+    <div class="gateway-header">
+        <h4>@ViewBag.Method Checkout (Sandbox)</h4>
+    </div>
+    <div class="gateway-body">
+        <p class="text-center text-muted mb-4">Complete your sandbox payment securely.</p>
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger py-2">@TempData["ErrorMessage"]</div>
+        }
+        
+        <form asp-action="MockGatewaySubmit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="paymentId" value="@ViewBag.PaymentId" />
+            <input type="hidden" name="method" value="@ViewBag.Method" />
+            
+            <div class="mb-3">
+                <label class="form-label">Merchant / Owner Number</label>
+                <input type="text" class="form-control" value="@ViewBag.OwnerPhone" readonly />
+                <div class="form-text">Pre-filled with the room owner's number.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Amount (BDT)</label>
+                <input type="text" class="form-control" value="@ViewBag.Amount" readonly />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Sender Wallet Number</label>
+                <input type="text" class="form-control" value="@ViewBag.SenderPhone" readonly />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Sandbox OTP</label>
+                <input type="text" name="otp" class="form-control" placeholder="Enter OTP sent to your number" required />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Enter PIN to Confirm</label>
+                <input type="password" name="pin" class="form-control" placeholder="Enter your PIN" required />
+            </div>
+
+            <button type="submit" class="btn w-100 fw-bold" style="background-color: @(ViewBag.Method == "bKash" ? "#e2136e" : "#ed1c24"); color: white;">Confirm Payment</button>
+            <a href="/" class="btn btn-link w-100 text-muted mt-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

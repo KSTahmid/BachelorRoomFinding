@@ -1,79 +1,183 @@
 @{
     ViewData["Title"] = "Choose Payment Method";
+    Layout = null;
 }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        * { box-sizing: border-box; }
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-5">
-                    <h3 class="fw-bold mb-4">Pay Advance</h3>
-                    <p class="text-muted mb-4">Amount to pay: <strong>@ViewBag.Amount BDT</strong></p>
-                    @if (TempData["ErrorMessage"] != null)
-                    {
-                        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-                    }
-                    @if (ViewBag.IsDemoNumber == true)
-                    {
-                        <div class="alert alert-warning">
-                            এই owner এর payment number টি demo। বাস্তব পেমেন্ট করা যাবে না।
-                        </div>
-                    }
+        .gateway-wrapper { max-width: 420px; margin: 0 auto; background: #fff; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
 
-                    <form asp-action="Initiate" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="applicationId" value="@ViewBag.ApplicationId" />
-                        <input type="hidden" name="amount" value="@ViewBag.Amount" />
+        /* Top nav */
+        .top-nav { background: #fff; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e0e0e0; }
+        .top-nav-back { display: flex; align-items: center; gap: 8px; color: #e63950; font-weight: 700; font-size: 16px; text-decoration: none; }
+        .top-nav-back svg { width: 18px; height: 18px; }
+        .top-nav-cancel { color: #e63950; font-weight: 700; font-size: 15px; text-decoration: none; }
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Select Payment Method</label>
-                            <select name="method" id="methodSelect" class="form-select form-select-lg mb-3" required onchange="updateRecipientNumber()">
-                                <option value="" disabled selected>-- Choose Method --</option>
-                                @if (ViewBag.IsDemoNumber == true)
-                                {
-                                    <option value="bKash" disabled>bKash</option>
-                                    <option value="Nagad" disabled>Nagad</option>
-                                }
-                                else
-                                {
-                                    <option value="bKash">bKash</option>
-                                    <option value="Nagad">Nagad</option>
-                                }
-                                <option value="BankTransfer">Bank Transfer</option>
-                            </select>
-                        </div>
+        /* Header bar (orange stripe like Nagad) */
+        .header-bar { background: #f5a623; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; }
+        .header-bar-title { color: #fff; font-weight: 800; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; }
+        .header-bar-fare { color: #fff; font-weight: 800; font-size: 17px; margin: 0; }
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Owner recipient number</label>
-                            <input id="recipientNumber" class="form-control" value="@ViewBag.OwnerBkash" readonly />
-                            @if (ViewBag.IsDemoNumber == true)
-                            {
-                                <span class="badge bg-warning text-dark mt-2">Demo</span>
-                            }
-                        </div>
+        /* Method list */
+        .method-list { padding: 14px 14px 0; }
+        .method-box {
+            background: #fff; border: 1.5px solid #e0e0e0; border-radius: 10px;
+            padding: 14px 20px; text-align: center; margin-bottom: 10px;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; min-height: 60px;
+        }
+        .method-box:hover { border-color: #e63950; box-shadow: 0 0 8px rgba(230,57,80,0.2); transform: scale(1.01); }
+        .method-box.active { border-color: #e63950; box-shadow: 0 0 8px rgba(230,57,80,0.3); }
+        .method-box img { max-height: 38px; max-width: 160px; object-fit: contain; }
+        .method-label { font-size: 15px; font-weight: 600; color: #333; }
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Your wallet number</label>
-                            <input name="senderWalletNumber" class="form-control" placeholder="01XXXXXXXXX" required />
-                        </div>
+        /* Disclaimer */
+        .disclaimer-box { margin: 14px 14px 0; background: #fff3f4; border: 1px solid #f5c6cb; border-radius: 8px; padding: 12px 14px; color: #c0392b; font-size: 13px; line-height: 1.5; }
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold">Proceed to Payment</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+        /* Terms */
+        .terms-box { margin: 12px 14px 20px; font-size: 13px; color: #666; text-align: center; line-height: 1.6; }
+        .terms-box a { color: #e63950; font-weight: 600; text-decoration: none; }
+
+        /* Loading overlay */
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); display: none; align-items: flex-end; justify-content: center; z-index: 9999; padding-bottom: 40px; }
+        .loading-card { background: #fff; border-radius: 16px; padding: 22px 28px; width: 88%; max-width: 380px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .loading-card .spinner-border { width: 2rem; height: 2rem; color: #e63950; }
+        .loading-card p { margin: 12px 0 0; font-size: 15px; color: #333; font-weight: 500; }
+
+        /* Error alert */
+        .error-box { margin: 10px 14px; }
+    </style>
+</head>
+<body>
+
+<div class="gateway-wrapper">
+
+    <!-- Top navigation -->
+    <div class="top-nav">
+        <a class="top-nav-back" href="javascript:history.back()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Advance Payment
+        </a>
+        <a class="top-nav-cancel" href="/">Cancel</a>
+    </div>
+
+    <!-- Orange header bar -->
+    <div class="header-bar">
+        <p class="header-bar-title">PAYMENT METHOD</p>
+        <p class="header-bar-fare">Amt: ৳@ViewBag.Amount</p>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="error-box">
+            <div class="alert alert-danger py-2 mb-0">@TempData["ErrorMessage"]</div>
         </div>
+    }
+
+    <!-- Hidden form -->
+    <form asp-action="Initiate" method="post" id="paymentForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="applicationId" value="@ViewBag.ApplicationId" />
+        <input type="hidden" name="amount" value="@ViewBag.Amount" />
+        <input type="hidden" name="method" id="selectedMethod" value="" />
+        <input type="hidden" name="senderWalletNumber" id="senderWalletField" value="" />
+    </form>
+
+    <!-- Payment method boxes -->
+    <div class="method-list">
+
+        <!-- bKash -->
+        <div class="method-box" id="box-bkash" onclick="selectMethod('bKash')">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/c/c8/BKash_Logo.svg/1200px-BKash_Logo.svg.png" alt="bKash"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.method-label').style.display='block'" />
+            <span class="method-label" style="display:none; color:#e2136e; font-size:18px;">bKash</span>
+        </div>
+
+        <!-- Nagad -->
+        <div class="method-box" id="box-nagad" onclick="selectMethod('Nagad')">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Nagad.svg/1200px-Nagad.svg.png" alt="Nagad"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.method-label').style.display='block'" />
+            <span class="method-label" style="display:none; color:#e63412;">নগদ</span>
+        </div>
+
+        <!-- Rocket -->
+        <div class="method-box">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/9/9f/Dutch_Bangla_Bank_Rocket.png/200px-Dutch_Bangla_Bank_Rocket.png" alt="Rocket"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.method-label').style.display='block'" />
+            <span class="method-label" style="display:none; color:#8B008B;">Rocket</span>
+        </div>
+
+        <!-- Upay -->
+        <div class="method-box">
+            <img src="https://seeklogo.com/images/U/upay-logo-2C5E78ED31-seeklogo.com.png" alt="Upay" style="max-height:30px;"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.method-label').style.display='block'" />
+            <span class="method-label" style="display:none; color:#0072bc;">Upay</span>
+        </div>
+
+        <!-- Visa -->
+        <div class="method-box">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/1200px-Visa_Inc._logo.svg.png" alt="Visa" style="max-height:22px;"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.method-label').style.display='block'" />
+            <span class="method-label" style="display:none; color:#1a1f71;">VISA</span>
+        </div>
+
+        <!-- Mastercard -->
+        <div class="method-box">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1200px-Mastercard-logo.svg.png" alt="Mastercard" style="max-height:32px;"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.method-label').style.display='block'" />
+            <span class="method-label" style="display:none;">Mastercard</span>
+        </div>
+
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer-box">
+        ⚠️ Please note that the service charge and SMS Alert charge are non-refundable.
+    </div>
+
+    <!-- Terms -->
+    <div class="terms-box">
+        By clicking PROCEED TO PAYMENT, you are agreeing to<br/>
+        <strong>Bachelor Room Finding</strong>'s <a href="#">Terms and Conditions</a> &amp; <a href="#">Privacy Policy</a>
+    </div>
+
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+        <p>Ticket booking is confirmed!<br/>Redirecting to payment gateway. Please wait.</p>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function updateRecipientNumber() {
-            const method = document.getElementById('methodSelect').value;
-            document.getElementById('recipientNumber').value = method === 'Nagad'
-                ? '@ViewBag.OwnerNagad'
-                : '@ViewBag.OwnerBkash';
-        }
-    </script>
-}
+<script>
+    function selectMethod(methodName) {
+        // Highlight selected box
+        document.querySelectorAll('.method-box').forEach(b => b.classList.remove('active'));
+        var boxId = methodName === 'bKash' ? 'box-bkash' : 'box-nagad';
+        document.getElementById(boxId).classList.add('active');
+
+        // Set values
+        document.getElementById('selectedMethod').value = methodName;
+        document.getElementById('senderWalletField').value = '';
+
+        // Show loading overlay
+        document.getElementById('loadingOverlay').style.display = 'flex';
+
+        // Submit after 1.5 seconds
+        setTimeout(function () {
+            document.getElementById('paymentForm').submit();
+        }, 1500);
+    }
+</script>
+
+</body>
+</html>
